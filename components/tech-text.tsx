@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -142,18 +141,19 @@ const TechText: React.FC<TechTextProps> = ({
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    if (!container || !canvas) return undefined;
+    const ctx = canvas.getContext('2d');
     const scratch = document.createElement('canvas');
     const scratchCtx = scratch.getContext('2d');
-    if (!container || !canvas || !ctx || !scratchCtx) return undefined;
+    if (!ctx || !scratchCtx) return undefined;
 
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    let width = 1;
-    let height = 1;
-    let dpr = 1;
+    let width = Math.max(1, container.clientWidth || 300);
+    let height = Math.max(1, container.clientHeight || 60);
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let raf = 0;
     let last = performance.now();
-    let visible = false;
+    let visible = true;
     let alive = true;
     let layoutKey = '';
     let sizeDirty = true;
@@ -189,7 +189,7 @@ const TechText: React.FC<TechTextProps> = ({
     };
 
     const family = (s: any) => {
-      let fam = s.fontFamily || getComputedStyle(container).fontFamily || 'sans-serif';
+      let fam = s.fontFamily || getComputedStyle(container).fontFamily || 'Georgia, serif';
       if (fam.includes('var(')) {
         fam = fam.replace(/var\((--[^,\)]+)(?:,\s*([^\)]+))?\)/g, (_: string, varName: string, fallback: string) => {
           const val = getComputedStyle(container).getPropertyValue(varName).trim();
@@ -207,7 +207,8 @@ const TechText: React.FC<TechTextProps> = ({
 
     const fontFor = (s: any, size: number) => {
       const stylePart = fStyle(s);
-      return `${stylePart ? `${stylePart} ` : ''}${s.fontWeight} ${size}px ${family(s)}`;
+      const roundedSize = Math.max(1, Math.round(size));
+      return `${stylePart ? `${stylePart} ` : ''}${s.fontWeight} ${roundedSize}px ${family(s)}`;
     };
 
     const palette = (s: any) => {
@@ -286,35 +287,57 @@ const TechText: React.FC<TechTextProps> = ({
       const probe = scratchCtx;
       setFont(probe, s, s.fontSize);
       let m = probe.measureText(s.text);
+
+      const boxL = Number(m.actualBoundingBoxLeft) || 0;
+      const boxR = Number(m.actualBoundingBoxRight) || Number(m.width) || s.fontSize * 0.6;
+      const boxAsc = Number(m.actualBoundingBoxAscent) || s.fontSize * 0.75;
+      const boxDesc = Number(m.actualBoundingBoxDescent) || s.fontSize * 0.2;
+
+      const inkWidth = Math.max(boxL + boxR, Number(m.width) || 1, 1);
+      const inkHeight = Math.max(boxAsc + boxDesc, s.fontSize * 0.7, 1);
+
       const horizontalMargin = s.margin !== undefined ? s.margin * 2 : width * 0.1;
       const fit = Math.min(
         1,
-        Math.max(0.1, width - horizontalMargin) / Math.max(m.actualBoundingBoxLeft + m.actualBoundingBoxRight, 1),
-        (height * 0.66) / Math.max(m.actualBoundingBoxAscent + m.actualBoundingBoxDescent, 1)
+        Math.max(0.1, width - horizontalMargin) / inkWidth,
+        (height * 0.66) / inkHeight
       );
-      const size = s.fontSize * fit;
+      const size = Math.max(12, s.fontSize * (Number.isFinite(fit) && fit > 0 ? fit : 1));
       setFont(probe, s, size);
       m = probe.measureText(s.text);
-      const inkWidth = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
-      const inkHeight = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+
+      const actualBoxL = Number(m.actualBoundingBoxLeft) || 0;
+      const actualBoxR = Number(m.actualBoundingBoxRight) || Number(m.width) || size * 0.6;
+      const actualBoxAsc = Number(m.actualBoundingBoxAscent) || size * 0.75;
+      const actualBoxDesc = Number(m.actualBoundingBoxDescent) || size * 0.2;
+
+      const finalInkWidth = Math.max(actualBoxL + actualBoxR, Number(m.width) || 1, 1);
+      const finalInkHeight = Math.max(actualBoxAsc + actualBoxDesc, size * 0.7, 1);
+
       const marginVal = s.margin !== undefined ? s.margin : width * 0.05;
       const start =
-        s.align === 'left' ? marginVal : s.align === 'right' ? width - marginVal - inkWidth : (width - inkWidth) / 2;
-      const x = start + m.actualBoundingBoxLeft;
-      const baseline = (height - inkHeight) / 2 + m.actualBoundingBoxAscent;
-      const xHeight = baseline - probe.measureText('x').actualBoundingBoxAscent;
-      const capHeight = baseline - probe.measureText('H').actualBoundingBoxAscent;
-      const ascender = baseline - probe.measureText('d').actualBoundingBoxAscent;
-      const descender = baseline + probe.measureText('p').actualBoundingBoxDescent;
-      const top = baseline - m.actualBoundingBoxAscent;
-      const bottom = baseline + m.actualBoundingBoxDescent;
+        s.align === 'left' ? marginVal : s.align === 'right' ? width - marginVal - finalInkWidth : (width - finalInkWidth) / 2;
+      const x = start + actualBoxL;
+      const baseline = (height - finalInkHeight) / 2 + actualBoxAsc;
+
+      const xM = probe.measureText('x');
+      const hM = probe.measureText('H');
+      const dM = probe.measureText('d');
+      const pM = probe.measureText('p');
+
+      const xHeight = baseline - (Number(xM.actualBoundingBoxAscent) || size * 0.5);
+      const capHeight = baseline - (Number(hM.actualBoundingBoxAscent) || size * 0.7);
+      const ascender = baseline - (Number(dM.actualBoundingBoxAscent) || size * 0.75);
+      const descender = baseline + (Number(pM.actualBoundingBoxDescent) || size * 0.25);
+      const top = baseline - actualBoxAsc;
+      const bottom = baseline + actualBoxDesc;
       const inkTop = Math.min(top, capHeight) - 2;
       const inkBottom = Math.max(bottom, baseline) + 2;
       const next = {
         size,
         baseline,
-        left: x - m.actualBoundingBoxLeft,
-        right: x + m.actualBoundingBoxRight,
+        left: x - actualBoxL,
+        right: x + actualBoxR,
         top,
         bottom,
         lines: [
@@ -333,7 +356,7 @@ const TechText: React.FC<TechTextProps> = ({
       };
       word = next;
 
-      const chars = Array.from(s.text as string);
+      const chars = Array.from(String(s.text));
       const previous = glyphs;
       glyphs = [];
       let prefix = '';
@@ -342,14 +365,20 @@ const TechText: React.FC<TechTextProps> = ({
         const own = probe.measureText(char);
         const gx = x + probe.measureText(prefix).width - own.width;
         if (!char.trim()) return;
+
+        const ownL = Number(own.actualBoundingBoxLeft) || 0;
+        const ownR = Number(own.actualBoundingBoxRight) || Number(own.width) || size * 0.6;
+        const ownAsc = Number(own.actualBoundingBoxAscent) || size * 0.75;
+        const ownDesc = Number(own.actualBoundingBoxDescent) || size * 0.2;
+
         const base = {
           char,
           x: gx,
           box: {
-            x1: gx - own.actualBoundingBoxLeft,
-            y1: baseline - own.actualBoundingBoxAscent,
-            x2: gx + own.actualBoundingBoxRight,
-            y2: baseline + own.actualBoundingBoxDescent
+            x1: gx - ownL,
+            y1: baseline - ownAsc,
+            x2: gx + ownR,
+            y2: baseline + ownDesc
           }
         };
         const kept = previous[glyphs.length];
@@ -762,8 +791,8 @@ const TechText: React.FC<TechTextProps> = ({
       if (!s) return;
       if (sizeDirty) {
         sizeDirty = false;
-        width = Math.max(1, container.clientWidth);
-        height = Math.max(1, container.clientHeight);
+        width = Math.max(1, container.clientWidth || 300);
+        height = Math.max(1, container.clientHeight || 60);
         dpr = Math.min(window.devicePixelRatio || 1, 2);
         const pixelWidth = Math.round(width * dpr);
         const pixelHeight = Math.round(height * dpr);
@@ -958,7 +987,8 @@ const TechText: React.FC<TechTextProps> = ({
     };
 
     const wake = () => {
-      if (raf || !visible || !alive) return;
+      if (raf || !alive) return;
+      if (!visible && !pointer.inside) return;
       last = performance.now();
       raf = requestAnimationFrame(tick);
     };
@@ -1035,11 +1065,18 @@ const TechText: React.FC<TechTextProps> = ({
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
     window.addEventListener('resize', resize, { passive: true });
-    const intersectionObserver = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-      wake();
-    });
-    intersectionObserver.observe(container);
+
+    let intersectionObserver: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      intersectionObserver = new IntersectionObserver(([entry]) => {
+        if (entry) {
+          visible = entry.isIntersecting;
+          if (visible) wake();
+        }
+      });
+      intersectionObserver.observe(container);
+    }
+
     const themeObserver = new MutationObserver(wake);
     for (const node of [document.documentElement, document.body]) {
       if (node) themeObserver.observe(node, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
@@ -1048,7 +1085,14 @@ const TechText: React.FC<TechTextProps> = ({
     schemeQuery?.addEventListener?.('change', wake);
     if (document.fonts) document.fonts.ready.then(fontsLoaded, fontsLoaded);
 
-    resize();
+    // Initial measurement and render
+    width = Math.max(1, container.clientWidth || 300);
+    height = Math.max(1, container.clientHeight || 60);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    sizeDirty = true;
+    wake();
 
     return () => {
       alive = false;
@@ -1056,7 +1100,7 @@ const TechText: React.FC<TechTextProps> = ({
       wakeRef.current = () => {};
       resizeObserver.disconnect();
       window.removeEventListener('resize', resize);
-      intersectionObserver.disconnect();
+      intersectionObserver?.disconnect();
       themeObserver.disconnect();
       schemeQuery?.removeEventListener?.('change', wake);
       container.style.cursor = '';
