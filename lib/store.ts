@@ -14,6 +14,7 @@ import type {
 import { getInitialMastery, updateMastery, pickNextConcept } from "./learner";
 import { detectMisconception } from "./misconception";
 import { getQuestions, nextQuestion as selectNextQuestion } from "./questions";
+import { calculateSM2 } from "./sm2";
 
 export interface SM2State {
   repetitions: number;
@@ -492,47 +493,6 @@ export function getNextQuestion(currentQuestionId?: string): Question {
   return bank[nextIdx];
 }
 
-// SM-2 algorithm update logic
-function updateSM2(
-  state: SM2State | undefined,
-  correct: boolean
-): SM2State {
-  const current = state || {
-    repetitions: 0,
-    interval: 1,
-    easeFactor: 2.5,
-    nextReviewDate: new Date().toISOString(),
-  };
-
-  let repetitions = current.repetitions;
-  let interval = current.interval;
-  let easeFactor = current.easeFactor;
-
-  if (correct) {
-    if (repetitions === 0) {
-      interval = 1;
-    } else if (repetitions === 1) {
-      interval = 6;
-    } else {
-      interval = Math.round(interval * easeFactor);
-    }
-    repetitions += 1;
-    easeFactor = Math.min(2.5, Math.max(1.3, easeFactor + 0.1));
-  } else {
-    repetitions = 0;
-    interval = 1;
-    easeFactor = Math.max(1.3, easeFactor - 0.2);
-  }
-
-  const nextReviewDate = new Date(Date.now() + interval * 24 * 60 * 60 * 1000).toISOString();
-
-  return {
-    repetitions,
-    interval,
-    easeFactor: Number(easeFactor.toFixed(2)),
-    nextReviewDate,
-  };
-}
 
 export async function recordAnswer(req: AnswerRequest): Promise<AnswerResponse> {
   const store = loadStore();
@@ -550,8 +510,29 @@ export async function recordAnswer(req: AnswerRequest): Promise<AnswerResponse> 
   // Update mastery using learner model (mastery += 0.3 * (target - mastery); reduce prereqs if wrong)
   student.mastery = updateMastery(student.mastery, question.concept_id, isCorrect);
 
-  // Update SM-2 schedule
-  student.sm2[question.concept_id] = updateSM2(student.sm2[question.concept_id], isCorrect);
+  // Update SM-2 schedule (quality 5 if correct, 2 if wrong)
+  const currentSM2 = student.sm2[question.concept_id] || {
+    repetitions: 0,
+    interval: 1,
+    easeFactor: 2.5,
+    nextReviewDate: new Date().toISOString(),
+  };
+  const updatedSM2 = calculateSM2(
+    {
+      concept_id: question.concept_id,
+      repetitions: currentSM2.repetitions,
+      interval: currentSM2.interval,
+      easeFactor: currentSM2.easeFactor,
+      dueDate: currentSM2.nextReviewDate,
+    },
+    isCorrect
+  );
+  student.sm2[question.concept_id] = {
+    repetitions: updatedSM2.repetitions,
+    interval: updatedSM2.interval,
+    easeFactor: updatedSM2.easeFactor,
+    nextReviewDate: updatedSM2.dueDate || new Date().toISOString(),
+  };
 
   // Append history
   student.history.push({

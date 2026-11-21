@@ -1,0 +1,382 @@
+[
+  {
+    "id": "student-1",
+    "name": "Alex Johnson",
+    "misconception_id": "M1",
+    "mastery": {
+      "variables-types": 0.85,
+      "operators": 0.75,
+      "strings": 0.80,
+      "string-equality": 0.30,
+      "conditionals": 0.70,
+      "loops": 0.65,
+      "arrays": 0.60,
+      "methods": 0.55,
+      "classes-objects": 0.50,
+      "references": 0.45,
+      "static-instance": 0.40,
+      "inheritance": 0.35
+    }
+  },
+  {
+    "id": "student-2",
+    "name": "Beatriz Ramos",
+    "misconception_id": "M2",
+    "mastery": {
+      "variables-types": 0.90,
+      "operators": 0.25,
+      "strings": 0.85,
+      "string-equality": 0.70,
+      "conditionals": 0.60,
+      "loops": 0.55,
+      "arrays": 0.65,
+      "methods": 0.50,
+      "classes-objects": 0.45,
+      "references": 0.40,
+      "static-instance": 0.40,
+      "inheritance": 0.30
+    }
+  },
+  {
+    "id": "student-3",
+    "name": "Chen Wei",
+    "misconception_id": "M4",
+    "mastery": {
+      "variables-types": 0.80,
+      "operators": 0.70,
+      "strings": 0.75,
+      "string-equality": 0.65,
+      "conditionals": 0.80,
+      "loops": 0.70,
+      "arrays": 0.25,
+      "methods": 0.60,
+      "classes-objects": 0.55,
+      "references": 0.40,
+      "static-instance": 0.50,
+      "inheritance": 0.45
+    }
+  },
+  {
+    "id": "student-4",
+    "name": "Devon Miller",
+    "misconception_id": "M1",
+    "mastery": {
+      "variables-types": 0.95,
+      "operators": 0.90,
+      "strings": 0.85,
+      "string-equality": 0.35,
+      "conditionals": 0.85,
+      "loops": 0.80,
+      "arrays": 0.75,
+      "methods": 0.70,
+      "classes-objects": 0.65,
+      "references": 0.60,
+      "static-instance": 0.55,
+      "inheritance": 0.50
+    }
+  },
+  {
+    "id": "student-5",
+    "name": "Elena Rostova",
+    "misconception_id": "M2",
+    "mastery": {
+      "variables-types": 0.75,
+      "operators": 0.30,
+      "strings": 0.65,
+      "string-equality": 0.60,
+      "conditionals": 0.55,
+      "loops": 0.50,
+      "arrays": 0.45,
+      "methods": 0.40,
+      "classes-objects": 0.35,
+      "references": 0.30,
+      "static-instance": 0.30,
+      "inheritance": 0.25
+    }
+  },
+  {
+    "id": "student-6",
+    "name": "Fatima Al-Mansoor",
+    "misconception_id": "M1",
+    "mastery": {
+      "variables-types": 0.88,
+      "operators": 0.82,
+      "strings": 0.78,
+      "string-equality": 0.28,
+      "conditionals": 0.75,
+      "loops": 0.72,
+      "arrays": 0.68,
+      "methods": 0.65,
+      "classes-objects": 0.58,
+      "references": 0.52,
+      "static-instance": 0.48,
+      "inheritance": 0.42
+    }
+  },
+  {
+    "id": "student-7",
+    "name": "Gabriel Santos",
+    "misconception_id": "M4",
+    "mastery": {
+      "variables-types": 0.70,
+      "operators": 0.65,
+      "strings": 0.60,
+      "string-equality": 0.55,
+      "conditionals": 0.60,
+      "loops": 0.55,
+      "arrays": 0.20,
+      "methods": 0.45,
+      "classes-objects": 0.40,
+      "references": 0.35,
+      "static-instance": 0.30,
+      "inheritance": 0.25
+    }
+  },
+  {
+    "id": "student-8",
+    "name": "Hana Tanaka",
+    "misconception_id": "M5",
+    "mastery": {
+      "variables-types": 0.92,
+      "operators": 0.85,
+      "strings": 0.88,
+      "string-equality": 0.80,
+      "conditionals": 0.78,
+      "loops": 0.32,
+      "arrays": 0.70,
+      "methods": 0.68,
+      "classes-objects": 0.62,
+      "references": 0.58,
+      "static-instance": 0.54,
+      "inheritance": 0.50
+    }
+  },
+  {
+    "id": "student-9",
+    "name": "Ian Wright",
+    "misconception_id": "M1",
+    "mastery": {
+      "variables-types": 0.65,
+      "operators": 0.60,
+      "strings": 0.55,
+      "string-equality": 0.22,
+      "conditionals": 0.50,
+      "loops": 0.45,
+      "arrays": 0.40,
+      "methods": 0.35,
+      "classes-objects": 0.30,
+      "references": 0.25,
+      "static-instance": 0.25,
+      "inheritance": 0.20
+    }
+  },
+  {
+    "id": "student-10",
+    "name": "Jasmine Taylor",
+    "misconception_id": "M2",
+    "mastery": {
+      "variables-types": 0.82,
+      "operators": 0.28,
+      "strings": 0.76,
+      "string-equality": 0.72,
+      "conditionals": 0.68,
+      "loops": 0.64,
+      "arrays": 0.60,
+      "methods": 0.56,
+      "classes-objects": 0.52,
+      "references": 0.48,
+      "static-instance": 0.44,
+      "inheritance": 0.40
+    }
+  },
+  {
+    "id": "student-11",
+    "name": "Kavita Sharma",
+    "misconception_id": "M4",
+    "mastery": {
+      "variables-types": 0.94,
+      "operators": 0.88,
+      "strings": 0.90,
+      "string-equality": 0.84,
+      "conditionals": 0.82,
+      "loops": 0.78,
+      "arrays": 0.30,
+      "methods": 0.74,
+      "classes-objects": 0.70,
+      "references": 0.66,
+      "static-instance": 0.62,
+      "inheritance": 0.58
+    }
+  },
+  {
+    "id": "student-12",
+    "name": "Liam O'Connor",
+    "misconception_id": "M2",
+    "mastery": {
+      "variables-types": 0.78,
+      "operators": 0.32,
+      "strings": 0.70,
+      "string-equality": 0.66,
+      "conditionals": 0.62,
+      "loops": 0.58,
+      "arrays": 0.54,
+      "methods": 0.50,
+      "classes-objects": 0.46,
+      "references": 0.42,
+      "static-instance": 0.38,
+      "inheritance": 0.34
+    }
+  },
+  {
+    "id": "student-13",
+    "name": "Maya Lin",
+    "misconception_id": "M1",
+    "mastery": {
+      "variables-types": 0.86,
+      "operators": 0.80,
+      "strings": 0.82,
+      "string-equality": 0.26,
+      "conditionals": 0.74,
+      "loops": 0.70,
+      "arrays": 0.66,
+      "methods": 0.62,
+      "classes-objects": 0.58,
+      "references": 0.54,
+      "static-instance": 0.50,
+      "inheritance": 0.46
+    }
+  },
+  {
+    "id": "student-14",
+    "name": "Noah Kim",
+    "misconception_id": "M3",
+    "mastery": {
+      "variables-types": 0.91,
+      "operators": 0.86,
+      "strings": 0.84,
+      "string-equality": 0.80,
+      "conditionals": 0.78,
+      "loops": 0.75,
+      "arrays": 0.72,
+      "methods": 0.34,
+      "classes-objects": 0.65,
+      "references": 0.60,
+      "static-instance": 0.55,
+      "inheritance": 0.50
+    }
+  },
+  {
+    "id": "student-15",
+    "name": "Olivia Martinez",
+    "misconception_id": "M2",
+    "mastery": {
+      "variables-types": 0.72,
+      "operators": 0.22,
+      "strings": 0.68,
+      "string-equality": 0.64,
+      "conditionals": 0.60,
+      "loops": 0.56,
+      "arrays": 0.52,
+      "methods": 0.48,
+      "classes-objects": 0.44,
+      "references": 0.40,
+      "static-instance": 0.36,
+      "inheritance": 0.32
+    }
+  },
+  {
+    "id": "student-16",
+    "name": "Priya Patel",
+    "misconception_id": "M4",
+    "mastery": {
+      "variables-types": 0.89,
+      "operators": 0.84,
+      "strings": 0.81,
+      "string-equality": 0.78,
+      "conditionals": 0.75,
+      "loops": 0.71,
+      "arrays": 0.28,
+      "methods": 0.67,
+      "classes-objects": 0.63,
+      "references": 0.59,
+      "static-instance": 0.55,
+      "inheritance": 0.51
+    }
+  },
+  {
+    "id": "student-17",
+    "name": "Quinn Adams",
+    "misconception_id": "M6",
+    "mastery": {
+      "variables-types": 0.87,
+      "operators": 0.83,
+      "strings": 0.79,
+      "string-equality": 0.76,
+      "conditionals": 0.72,
+      "loops": 0.68,
+      "arrays": 0.64,
+      "methods": 0.60,
+      "classes-objects": 0.56,
+      "references": 0.24,
+      "static-instance": 0.48,
+      "inheritance": 0.44
+    }
+  },
+  {
+    "id": "student-18",
+    "name": "Ravi Verma",
+    "misconception_id": "M1",
+    "mastery": {
+      "variables-types": 0.84,
+      "operators": 0.79,
+      "strings": 0.76,
+      "string-equality": 0.32,
+      "conditionals": 0.71,
+      "loops": 0.67,
+      "arrays": 0.63,
+      "methods": 0.59,
+      "classes-objects": 0.55,
+      "references": 0.51,
+      "static-instance": 0.47,
+      "inheritance": 0.43
+    }
+  },
+  {
+    "id": "student-19",
+    "name": "Sofia Rossi",
+    "misconception_id": "M5",
+    "mastery": {
+      "variables-types": 0.81,
+      "operators": 0.77,
+      "strings": 0.74,
+      "string-equality": 0.70,
+      "conditionals": 0.67,
+      "loops": 0.29,
+      "arrays": 0.63,
+      "methods": 0.59,
+      "classes-objects": 0.55,
+      "references": 0.51,
+      "static-instance": 0.47,
+      "inheritance": 0.43
+    }
+  },
+  {
+    "id": "student-20",
+    "name": "Tyler Brooks",
+    "misconception_id": "M7",
+    "mastery": {
+      "variables-types": 0.83,
+      "operators": 0.78,
+      "strings": 0.75,
+      "string-equality": 0.71,
+      "conditionals": 0.68,
+      "loops": 0.64,
+      "arrays": 0.60,
+      "methods": 0.56,
+      "classes-objects": 0.52,
+      "references": 0.48,
+      "static-instance": 0.27,
+      "inheritance": 0.40
+    }
+  }
+]
