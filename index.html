@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plumb · Know where you stand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  :root{
+    --paper:#EFE7D6;
+    --paper-2:#E7DDC8;
+    --ink:#1D2A24;
+    --ink-2:#5B6A60;
+    --ink-3:#9AA096;
+    --pine:#24513F;
+    --ochre:#C69A3C;
+    --clay:#A4472F;
+    --fog:#D8D2C2;
+    --rule:#CFC4AC;
+    --serif:"Newsreader", Georgia, serif;
+    --sans:"Instrument Sans", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;min-height:100%}
+  body{background-image:radial-gradient(rgba(29,42,36,.05) 1px, transparent 1px);background-size:14px 14px}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+  :focus-visible{outline:2px solid var(--pine);outline-offset:3px;border-radius:2px}
+  .num{font-variant-numeric:tabular-nums}
+  .muted{color:var(--ink-2)}
+  .small{font-size:13px}
+  h1,h2,h3{font-family:var(--serif);font-weight:500;margin:0;letter-spacing:-.01em}
+  h1{font-size:46px;line-height:1.05}
+  h2{font-size:26px;line-height:1.15}
+  h3{font-size:19px;line-height:1.3}
+
+  /* header */
+  header{display:flex;align-items:center;gap:36px;padding:18px 44px;border-bottom:1px solid var(--rule)}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:25px;font-weight:600}
+  .brand svg{width:22px;height:30px}
+  nav{display:flex;gap:4px;background:var(--paper-2);padding:4px;border-radius:999px}
+  nav button{padding:7px 18px;border-radius:999px;color:var(--ink-2);font-size:14px;transition:background .25s,color .25s}
+  nav button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+  .who{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:14px;color:var(--ink-2)}
+  .seal{width:34px;height:34px;border-radius:50%;border:1px solid var(--ink);display:grid;place-items:center;font-family:var(--serif);font-size:15px}
+
+  main{padding:44px}
+  .screen{display:none}
+  .screen.on{display:block;animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* TERRAIN */
+  .head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:30px}
+  .head p{margin:12px 0 0;max-width:50ch;color:var(--ink-2)}
+  .elev{display:flex;gap:40px;text-align:right}
+  .elev b{display:block;font-family:var(--serif);font-size:44px;font-weight:500;line-height:1;color:var(--pine)}
+  .elev span{font-size:13px;color:var(--ink-2)}
+
+  .terrain-wrap{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:36px;align-items:start}
+  .map{position:relative;background:var(--paper-2);border:1px solid var(--rule);border-radius:4px;overflow:hidden;box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 18px 40px -28px rgba(29,42,36,.45)}
+  .map svg{display:block;width:100%;height:auto}
+  .contour{stroke:#3A4A40;stroke-width:.9px;stroke-opacity:.45;fill:none;vector-effect:non-scaling-stroke}
+  .place{cursor:pointer}
+  .place .dot{fill:var(--paper);stroke:var(--ink);stroke-width:1.6px;transition:r .2s}
+  .place:hover .dot,.place:focus .dot{r:7}
+  .place.sel .dot{fill:var(--ink)}
+  .place text{font-family:var(--serif);font-style:italic;font-size:15px;fill:var(--ink);paint-order:stroke;stroke:var(--paper-2);stroke-width:4px;stroke-linejoin:round}
+  .place .sub{font-family:var(--sans);font-style:normal;font-size:11px;fill:var(--ink-2)}
+  .fog{fill:var(--fog);opacity:.75;stroke:var(--ink-3);stroke-dasharray:3 4;stroke-width:1.2px}
+  .map .compass{position:absolute;left:18px;bottom:16px;font-size:12px;color:var(--ink-2);display:flex;gap:10px;align-items:center}
+  .map .compass i{display:inline-block;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid var(--ink)}
+  .legend{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--ink-2)}
+  .legend .ramp{display:flex;width:240px;height:8px;border-radius:4px;overflow:hidden;margin:0 8px}
+  .legend .ramp i{flex:1}
+
+  /* drawing reveal, one orchestrated moment */
+  .map .layer{opacity:0;transition:opacity 1.1s ease .15s}
+  .map.ready .layer{opacity:1}
+
+  aside.card{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:26px 26px 22px;position:sticky;top:24px}
+  .card .kicker{font-size:12px;color:var(--ink-2);letter-spacing:.02em}
+  .card h2{margin-top:6px}
+  .meter{display:flex;align-items:baseline;gap:10px;margin:14px 0 6px}
+  .meter b{font-family:var(--serif);font-size:48px;font-weight:500;line-height:1}
+  .meter span{font-size:13px;color:var(--ink-2)}
+  .band{height:8px;background:var(--rule);border-radius:4px;position:relative;margin-bottom:22px}
+  .band i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+  .band::after{content:"";position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);left:var(--tick,0%)}
+  .trail{display:flex;gap:6px;margin:6px 0 4px}
+  .trail span{flex:1;height:26px;border-radius:3px;display:grid;place-items:center;font-size:12px;font-weight:600}
+  .trail .ok{background:var(--pine);color:var(--paper)}
+  .trail .no{background:transparent;border:1.5px solid var(--clay);color:var(--clay)}
+  .trail .part{background:var(--ochre);color:var(--ink)}
+  .trail-label{font-size:12px;color:var(--ink-2);display:flex;justify-content:space-between}
+  .note{margin-top:20px;padding:14px 16px;background:var(--paper-2);border-radius:3px;border-left:3px solid var(--clay)}
+  .note b{font-weight:600;font-size:13px;color:var(--clay)}
+  .note p{margin:6px 0 0;font-size:14px}
+  .curve{margin-top:22px}
+  .curve svg{width:100%;height:auto;display:block;overflow:visible}
+  .curve .axis{stroke:var(--rule)}
+  .curve .decay{fill:none;stroke:var(--ink);stroke-width:1.6}
+  .curve .area{fill:var(--pine);opacity:.08}
+  .curve text{font-family:var(--sans);font-size:11px;fill:var(--ink-2)}
+  .cta{margin-top:22px;width:100%;padding:13px 16px;background:var(--pine);color:var(--paper);border-radius:3px;font-weight:500;transition:background .2s}
+  .cta:hover{background:#1A3D2F}
+
+  /* PRACTICE */
+  .slip{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:40px;align-items:start;max-width:1220px}
+  .slip-card{background:#FBF7EE;border:1px solid var(--rule);border-radius:4px;padding:34px 36px;position:relative;box-shadow:0 22px 40px -30px rgba(29,42,36,.5)}
+  .slip-card::before{content:"";position:absolute;left:0;right:0;top:-1px;height:6px;background:repeating-linear-gradient(90deg,var(--pine) 0 10px,transparent 10px 16px)}
+  .why{font-size:13px;color:var(--ink-2);padding-bottom:18px;margin-bottom:22px;border-bottom:1px dashed var(--rule)}
+  .why b{color:var(--ink);font-weight:600}
+  .prompt{font-family:var(--serif);font-size:30px;line-height:1.3;margin:0 0 28px;max-width:26ch}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .opt{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--rule);border-radius:3px;background:var(--paper);text-align:left;transition:border-color .2s,background .2s}
+  .opt:hover{border-color:var(--ink-2)}
+  .opt .k{font-family:var(--serif);font-style:italic;color:var(--ink-2)}
+  .opt[aria-checked="true"]{border-color:var(--pine);background:#E3E9DC;box-shadow:inset 0 0 0 1px var(--pine)}
+  .opt[aria-checked="true"] .k{color:var(--pine)}
+  .reason-head{margin:34px 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+  .reason-head h3{font-size:17px}
+  .reason-head span{font-size:12px;color:var(--ink-2)}
+  .reasoning{font-family:var(--serif);font-size:19px;line-height:1.7;margin:0;padding:18px 20px;background:var(--paper);border:1px solid var(--rule);border-radius:3px}
+  .tag{position:relative;cursor:help;border-bottom:2px solid;padding-bottom:1px}
+  .tag.good{border-color:var(--pine)}
+  .tag.warn{border-color:var(--ochre);background:rgba(198,154,60,.14)}
+  .tag.bad{border-color:var(--clay);background:rgba(164,71,47,.11)}
+
+  /* Tooltip for student reasoning highlights */
+  .tag:hover::after, .tag:focus::after{
+    content: attr(data-note);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 7px 11px;
+    border-radius: 3px;
+    font-family: var(--sans);
+    font-size: 12px;
+    line-height: 1.4;
+    font-style: normal;
+    font-weight: normal;
+    width: max-content;
+    max-width: 260px;
+    z-index: 20;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(29,42,36,.25);
+  }
+
+  .legend-tags{display:flex;gap:18px;margin-top:12px;font-size:12px;color:var(--ink-2)}
+  .legend-tags span::before{content:"";display:inline-block;width:14px;height:3px;margin-right:6px;vertical-align:middle}
+  .legend-tags .g::before{background:var(--pine)}
+  .legend-tags .y::before{background:var(--ochre)}
+  .legend-tags .r::before{background:var(--clay)}
+  .submit{margin-top:24px;padding:13px 24px;background:var(--ink);color:var(--paper);border-radius:3px;font-weight:500}
+
+  .read{position:relative}
+  .read .lede{font-size:13px;color:var(--ink-2);text-transform:none}
+  .read h2{margin:8px 0 14px}
+  .read .verdict{font-family:var(--serif);font-size:23px;line-height:1.35;margin:0 0 20px;max-width:30ch}
+  .finding{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:16px 0;border-top:1px solid var(--rule)}
+  .finding .mark{width:22px;height:22px;border-radius:50%;margin-top:2px;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--paper)}
+  .finding h3{font-size:16px;margin:0 0 4px}
+  .finding p{margin:0;font-size:14px;color:var(--ink-2)}
+  .ripple{margin-top:20px;padding:20px;background:var(--pine);color:var(--paper);border-radius:3px}
+  .ripple p{margin:8px 0 0;font-size:14px;opacity:.9}
+  .ripple .bars{display:flex;gap:4px;align-items:flex-end;height:36px;margin-top:14px}
+  .ripple .bars i{flex:1;background:var(--paper);opacity:.35;border-radius:2px 2px 0 0}
+  .ripple .bars i.on{opacity:1}
+
+  /* CLASS */
+  .class-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:44px;align-items:start}
+  .stats{display:flex;gap:44px;margin-top:6px}
+  .stats div{font-size:13px;color:var(--ink-2)}
+  .stats b{display:block;font-family:var(--serif);font-size:34px;font-weight:500;color:var(--ink);line-height:1.1}
+  .valleys{list-style:none;padding:0;margin:0}
+  .valley{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:start;padding:20px 0;border-top:1px solid var(--rule)}
+  .valley:last-child{border-bottom:1px solid var(--rule)}
+  .valley .depth{font-family:var(--serif);font-size:36px;line-height:1;color:var(--clay);min-width:64px}
+  .valley h3{font-style:italic}
+  .valley p{margin:6px 0 0;font-size:14px;color:var(--ink-2)}
+  .valley .chips{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .chip{font-size:12px;padding:3px 9px;border:1px solid var(--rule);border-radius:99px;color:var(--ink-2)}
+  .chip b{color:var(--ink);font-weight:600}
+  .valley button{align-self:center;font-size:13px;padding:8px 12px;border:1px solid var(--ink);border-radius:3px;white-space:nowrap;transition:background .2s,color .2s}
+  .valley button:hover{background:var(--ink);color:var(--paper)}
+  .valley button[aria-pressed="true"]{background:var(--pine);border-color:var(--pine);color:var(--paper)}
+  .plan{margin-top:26px;background:#FBF7EE;border:1px solid var(--rule);padding:24px 26px;border-radius:4px}
+  .plan ol{padding-left:0;margin:14px 0 0;list-style:none;counter-reset:s}
+  .plan li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:6px;padding:10px 0;border-top:1px dashed var(--rule);font-size:14px}
+  .plan li::before{content:counter(s,lower-roman);font-family:var(--serif);font-style:italic;color:var(--ink-2)}
+  .plan li:first-child{border-top:0}
+
+  /* Responsive styling: 390px mobile view with zero horizontal scroll */
+  @media (max-width: 900px){
+    header{padding:14px 20px;flex-wrap:wrap;gap:14px}
+    .who{order:2}
+    nav{order:3;width:100%;justify-content:center}
+    main{padding:24px 18px}
+    .head{flex-direction:column;align-items:flex-start;gap:16px}
+    .elev, .stats{width:100%;justify-content:flex-start;gap:28px;text-align:left}
+    .terrain-wrap, .slip, .class-grid{grid-template-columns:1fr;gap:24px}
+    aside.card{position:static}
+    .prompt{font-size:24px}
+    .opts{grid-template-columns:1fr}
+    .slip-card{padding:22px 20px}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .screen.on{animation:none}
+    .map .layer{transition:none;opacity:1}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 22 30" aria-hidden="true"><path d="M11 0v20" stroke="#1D2A24" stroke-width="1.4" fill="none"/><path d="M11 20 L2 28 M11 20 L20 28" stroke="#24513F" stroke-width="0"/><ellipse cx="11" cy="23" rx="7" ry="8" fill="#24513F"/><circle cx="11" cy="23" r="2.2" fill="#EFE7D6"/></svg>
+    Plumb
+  </div>
+  <nav role="tablist" aria-label="Views">
+    <button role="tab" aria-selected="true" data-tab="terrain">Terrain</button>
+    <button role="tab" aria-selected="false" data-tab="practice">Practice</button>
+    <button role="tab" aria-selected="false" data-tab="class">Class</button>
+  </nav>
+  <div class="who"><span>Aanya Rao · Class 10 Physics</span><div class="seal" aria-hidden="true">A</div></div>
+</header>
+
+<main>
+
+  <!-- TERRAIN -->
+  <section class="screen on" id="terrain" aria-label="Knowledge terrain">
+    <div class="head">
+      <div>
+        <h1>Your physics, mapped</h1>
+        <p>Every concept is a place. Higher ground means stronger understanding. Unexplored areas stay in fog until Plumb has enough evidence to draw them.</p>
+      </div>
+      <div class="elev">
+        <div><b class="num">58%</b><span>Electricity &amp; Light</span></div>
+        <div><b class="num">3</b><span>valleys to cross</span></div>
+      </div>
+    </div>
+
+    <div class="terrain-wrap">
+      <div>
+        <div class="map" id="map">
+          <svg id="terrainSvg" viewBox="0 0 756 504" role="img" aria-label="Topographic map of concept mastery">
+            <g class="layer" id="layer"></g>
+            <g id="places"></g>
+          </svg>
+          <div class="compass"><i></i>North is mastery</div>
+        </div>
+        <div class="legend">
+          Valley
+          <span class="ramp" id="ramp"></span>
+          Summit
+        </div>
+      </div>
+      <aside class="card" id="detail" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section class="screen" id="practice" aria-label="Practice">
+    <div class="slip">
+      <div>
+        <div class="why"><b>Why this question:</b> Parallel circuits is in a valley at 22%. Plumb chose a question that tests the idea, not the arithmetic.</div>
+        <div class="slip-card">
+          <div class="small muted" style="margin-bottom:14px">Electricity · Parallel circuits · Question 3 of 5</div>
+          <p class="prompt">Two resistors, 4 Ω and 6 Ω, are joined in parallel. What is the equivalent resistance?</p>
+          <div class="opts" role="radiogroup" aria-label="Options">
+            <button class="opt" role="radio" aria-checked="false"><span class="k">A</span>10 Ω</button>
+            <button class="opt" role="radio" aria-checked="true"><span class="k">B</span>2.4 Ω</button>
+            <button class="opt" role="radio" aria-checked="false"><span class="k">C</span>5 Ω</button>
+            <button class="opt" role="radio" aria-checked="false"><span class="k">D</span>0.42 Ω</button>
+          </div>
+
+          <div class="reason-head"><h3>Explain your thinking</h3><span>Hover a highlight to see what Plumb noticed</span></div>
+          <p class="reasoning" id="reasoning">
+            Current splits between the two branches, so the total should be smaller than 4 Ω.
+            I used <span class="tag good" tabindex="0" data-note="Correct formula for parallel resistors. Solid.">1/R = 1/4 + 1/6</span>
+            and got 2.4. <span class="tag warn" tabindex="0" data-note="Right answer, but the check that it is below 4 Ω may be a rule you memorised, not a reason you can state. Ask: why must it be smaller than the smallest branch?">Since it's smaller than both, it has to be right.</span>
+          </p>
+          <div class="legend-tags"><span class="g">Sound step</span><span class="y">Right, but unexplained</span><span class="r">Misconception</span></div>
+          <button class="submit">Check my reasoning</button>
+        </div>
+      </div>
+
+      <div class="read" id="read">
+        <div class="lede">Feedback · after you submit</div>
+        <h2>Correct answer, fragile understanding</h2>
+        <p class="verdict">You got 2.4 Ω. Your method is solid. One sentence is doing the work for you, and Plumb wants to see the reason behind it.</p>
+
+        <div class="finding">
+          <div class="mark" style="background:var(--pine)">✓</div>
+          <div><h3>Parallel formula applied correctly</h3><p>You wrote the reciprocal sum, not a plain addition. That is the core idea of this concept.</p></div>
+        </div>
+        <div class="finding">
+          <div class="mark" style="background:var(--ochre);color:var(--ink)">!</div>
+          <div><h3>Bound not explained</h3><p>"It has to be smaller than both" is a rule you recall. Plumb will ask one follow-up next session to check the reasoning behind it.</p></div>
+        </div>
+        <div class="finding">
+          <div class="mark" style="background:var(--rule);color:var(--ink)">→</div>
+          <div><h3>Scheduled for review</h3><p>Returns in 3 days, when recall is expected to dip. The next question will be one step harder.</p></div>
+        </div>
+
+        <div class="ripple">
+          <div class="small" style="opacity:.8">Mastery movement</div>
+          <div class="num" style="font-family:var(--serif);font-size:30px;margin-top:4px">22% → 36%</div>
+          <p>Climbing slowly because the answer was right but the reasoning was not yet proven.</p>
+          <div class="bars" aria-hidden="true"><i></i><i></i><i class="on"></i><i></i><i></i><i class="on"></i><i></i></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLASS -->
+  <section class="screen" id="class" aria-label="Class view">
+    <div class="head">
+      <div>
+        <h1>Class 10 B, Physics</h1>
+        <p>The same terrain, averaged across 34 students. Valleys are concepts where most of the class is below 60%. Select a valley to group the students who share its misconception.</p>
+      </div>
+      <div class="stats">
+        <div><b class="num">34</b>students</div>
+        <div><b class="num">1,184</b>answers this week</div>
+        <div><b class="num">19</b>share one gap</div>
+      </div>
+    </div>
+
+    <div class="class-grid">
+      <div>
+        <div class="map" id="classMapWrap" style="background:var(--paper-2)">
+          <svg id="classSvg" viewBox="0 0 756 504" role="img" aria-label="Class-average terrain">
+            <g id="classLayer"></g>
+          </svg>
+        </div>
+        <div class="legend">Valley<span class="ramp" id="ramp2"></span>Summit</div>
+      </div>
+
+      <div>
+        <h2 style="margin-bottom:10px">Deepest valleys</h2>
+        <ul class="valleys" id="valleys"></ul>
+        <div class="plan" id="plan">
+          <div class="small muted">Suggested for Thursday · 12 minutes</div>
+          <h3 style="margin-top:6px">Parallel is not series, shown with current</h3>
+          <ol>
+            <li>Ask: "If one branch is cut, does current stop everywhere?" Collect answers.</li>
+            <li>Show the current split with two bulbs of different brightness.</li>
+            <li>Send 5 reasoning-based questions to the 19 students in the Parallel group.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ---------- data: concepts as places ---------- */
+const W = 180, H = 120, S = 4.2;         // grid size, scale to 756x504 viewbox
+const concepts = [
+  {id:"reflection", name:"Reflection",     x:22,  y:14,  m:.86, sub:"Strong",   trail:["ok","ok","ok","ok","ok","ok"], fit:"Secure. Reviewed in 14 days.", misc:null},
+  {id:"force",      name:"Force",          x:26,  y:84,  m:.82, sub:"Strong",   trail:["ok","ok","ok","part","ok","ok"], fit:"Secure. Reviewed in 9 days.", misc:null},
+  {id:"work",       name:"Work",           x:44,  y:44,  m:.71, sub:"Secure",   trail:["ok","ok","part","ok","ok","ok"], fit:"Solid. Reviewed in 6 days.", misc:null},
+  {id:"energy",     name:"Energy",         x:72,  y:30,  m:.58, sub:"Developing", trail:["ok","no","ok","part","ok","no"], fit:"Mostly there. Reviewed in 3 days.", misc:null},
+  {id:"power",      name:"Power",          x:100, y:22,  m:.63, sub:"Developing", trail:["ok","part","ok","ok","no","ok"], fit:"Developing. Reviewed in 4 days.", misc:null},
+  {id:"newton",     name:"Newton's 2nd",   x:62,  y:74,  m:.41, sub:"Developing", trail:["no","ok","part","no","ok","part"], fit:"Mass and weight used as one.", misc:{title:"Mass and weight used as one", body:"Shows up in 3 of your last 4 wrong answers. It explains why a heavy object needs more force to start moving.", tone:"clay"}},
+  {id:"momentum",   name:"Momentum",       x:90,  y:64,  m:.35, sub:"Needs work", trail:["no","no","part","no","ok","no"], fit:"Momentum treated as velocity.", misc:{title:"Momentum treated as velocity", body:"Affects 4 of your last 6 questions. Momentum depends on mass as well as speed.", tone:"clay"}},
+  {id:"ohm",        name:"Ohm's law",      x:126, y:82,  m:.90, sub:"Strong",   trail:["ok","ok","ok","ok","ok","ok"], fit:"Secure across the board.", misc:null},
+  {id:"series",     name:"Series",         x:140, y:50,  m:.52, sub:"Developing", trail:["ok","part","no","ok","part","ok"], fit:"Developing.", misc:null},
+  {id:"parallel",   name:"Parallel",       x:148, y:24,  m:.22, sub:"Needs work", trail:["no","no","part","no","no","ok"], fit:"Parallel treated as series.", misc:{title:"Parallel treated as series", body:"Seen in 3 separate answers. Current should split across branches, and resistance should fall.", tone:"clay"}},
+  {id:"refraction", name:"Refraction",     x:86,  y:104, m:.30, sub:"Needs work", trail:["no","part","no","no","ok","no"], fit:"Angles measured from the surface.", misc:{title:"Angles measured from the surface", body:"Angles should be measured from the normal. This appears in 4 of 6 ray diagrams.", tone:"clay"}},
+  {id:"lens",       name:"Lens formula",   x:160, y:100, m:.18, sub:"Needs work", trail:["no","no","no","part","no","no"], fit:"Sign convention ignored for virtual images.", misc:{title:"Sign convention ignored", body:"Plumb sees it when images are virtual. Practise with the real-image case first.", tone:"clay"}},
+];
+// unexplored area: no evidence yet
+const fogArea = {name:"Magnetism", x:44, y:104, r:20};
+
+/* ---------- terrain field ---------- */
+const sigma = 17;
+function field(list, offset=0){
+  const grid = new Array(W*H);
+  for(let j=0;j<H;j++){
+    for(let i=0;i<W;i++){
+      let v = 0;
+      for(const c of list){
+        const d2 = (i-c.x)**2 + (j-c.y)**2;
+        v += (c.m) * Math.exp(-d2/(2*sigma*sigma));
+      }
+      // gentle natural noise so contours don't look engineered
+      v += .035*Math.sin(i*.19+j*.07) * Math.cos(j*.23-i*.05) + .02*Math.sin(i*.41+j*.33);
+      grid[j*W+i] = Math.max(0, Math.min(1, v*.9 + offset));
+    }
+  }
+  return grid;
+}
+
+const ramp = d3.interpolateRgb("#EFE7D6", "#24513F");
+// hypsometric tint: low = paper, high = pine, with ochre midpoint for warmth
+const tint = t => d3.interpolateRgbBasis(["#EFE7D6","#E4D7B5","#C9B37A","#7F9C7A","#24513F"])(t);
+
+function drawTerrain(svgLayer, grid, levels=d3.range(.06, 1, .07)){
+  const contours = d3.contours().size([W,H]).thresholds(levels)(grid);
+  const path = d3.geoPath();
+  const g = d3.select(svgLayer).attr("transform", `scale(${S})`);
+  g.selectAll("path.fill").data(contours).join("path")
+    .attr("class","fill")
+    .attr("d", path)
+    .attr("fill", d => tint(d.value))
+    .attr("stroke","none");
+  g.selectAll("path.contour").data(contours).join("path")
+    .attr("class","contour")
+    .attr("d", path);
+}
+
+/* ---------- terrain screen ---------- */
+const placesG = d3.select("#places");
+const layerG = document.getElementById("layer");
+const grid = field(concepts);
+drawTerrain(layerG, grid);
+
+// fog for undiagnosed region
+placesG.append("circle").attr("class","fog").attr("cx",fogArea.x*S).attr("cy",fogArea.y*S).attr("r",fogArea.r*S*.9);
+placesG.append("text").attr("x",fogArea.x*S).attr("y",fogArea.y*S+4).attr("text-anchor","middle")
+  .attr("font-family","Newsreader, serif").attr("font-style","italic").attr("font-size",15).attr("fill","#5B6A60").text(fogArea.name+" · in fog");
+
+const pl = placesG.selectAll("g.place").data(concepts).join("g")
+  .attr("class","place").attr("tabindex",0).attr("role","button")
+  .attr("aria-label", d => `${d.name}, ${Math.round(d.m*100)} percent`)
+  .attr("transform", d => `translate(${d.x*S},${d.y*S})`)
+  .on("click", (e,d)=>select(d.id))
+  .on("keydown", (e,d)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();select(d.id);} });
+
+pl.append("circle").attr("class","dot").attr("r",5);
+pl.append("text").attr("x",11).attr("y",-6).text(d=>d.name);
+pl.append("text").attr("class","sub").attr("x",11).attr("y",9).text(d=>`${Math.round(d.m*100)}%`);
+
+/* spaced-repetition curve: retention decays from last review */
+function curveSvg(c){
+  const pts = d3.range(0, 31).map(t => ({t, r: Math.exp(-t/(1.8 + c.m*6))}));
+  const w=320, h=110, pad=18;
+  const x = d3.scaleLinear().domain([0,30]).range([pad, w-6]);
+  const y = d3.scaleLinear().domain([0,1]).range([h-pad, 6]);
+  const line = d3.line().x(d=>x(d.t)).y(d=>y(d.r));
+  const area = d3.area().x(d=>x(d.t)).y0(h-pad).y1(d=>y(d.r));
+  const reviewDay = Math.round((1.8+c.m*6)*.9);
+  return `<svg viewBox="0 0 ${w} ${h}" aria-label="Forgetting curve">
+    <line class="axis" x1="${pad}" x2="${w-6}" y1="${h-pad}" y2="${h-pad}"/>
+    <path class="area" d="${area(pts)}"/>
+    <path class="decay" d="${line(pts)}"/>
+    <line x1="${x(reviewDay)}" x2="${x(reviewDay)}" y1="${y(0)}" y2="${y(1)}" stroke="#A4472F" stroke-dasharray="2 3"/>
+    <circle cx="${x(0)}" cy="${y(1)}" r="3.5" fill="#1D2A24"/>
+    <text x="${pad}" y="${h-4}">today</text>
+    <text x="${x(reviewDay)}" y="${h-4}" text-anchor="middle" fill="#A4472F">review</text>
+    <text x="${w-6}" y="${h-4}" text-anchor="end">day 30</text>
+  </svg>`;
+}
+
+function select(id){
+  const c = concepts.find(x=>x.id===id);
+  placesG.selectAll("g.place").classed("sel", d=>d.id===id);
+  const trailHTML = c.trail.map(t => `<span class="${t}">${t==="ok"?"✓":t==="no"?"✕":"~"}</span>`).join("");
+  document.getElementById("detail").innerHTML = `
+    <div class="kicker">Concept · Electricity &amp; Light</div>
+    <h2 style="font-style:italic">${c.name}</h2>
+    <div class="meter"><b class="num">${Math.round(c.m*100)}%</b><span>${c.sub.toLowerCase()} · ${c.fit}</span></div>
+    <div class="band"><i style="width:${c.m*100}%;background:${c.m<.4?"var(--clay)":c.m<.7?"var(--ochre)":"var(--pine)"}"></i></div>
+    <div class="trail-label"><span>Last six answers</span><span>✓ right · ~ partly · ✕ wrong</span></div>
+    <div class="trail" style="margin-top:8px">${trailHTML}</div>
+    ${c.misc ? `<div class="note"><b>Misconception · ${c.misc.title}</b><p>${c.misc.body}</p></div>` : ""}
+    <div class="curve">
+      <div class="small muted" style="margin-bottom:6px">Expected recall without review</div>
+      ${curveSvg(c)}
+    </div>
+    <button class="cta" onclick="go('practice')">Practise this concept</button>`;
+}
+
+/* ---------- colour legend ramp ---------- */
+const rampHTML = d3.range(0,1.01,.1).map(t=>`<i style="background:${tint(t)}"></i>`).join("");
+document.getElementById("ramp").innerHTML = rampHTML;
+document.getElementById("ramp2").innerHTML = rampHTML;
+
+/* ---------- class view: class average terrain ---------- */
+const classConcepts = concepts.map(c => ({...c, m: Math.max(.05, c.m*.78)}));
+const classGrid = field(classConcepts, -.02);
+drawTerrain(document.getElementById("classLayer"), classGrid);
+
+const valleyData = [
+  {name:"Parallel", m:.22, depth:"−", students:19, gap:"Adds resistances as if in series.", tag:"Parallel = series", group:"A"},
+  {name:"Lens formula", m:.18, depth:"−", students:12, gap:"Ignores the sign convention for virtual images.", tag:"Sign convention", group:"B"},
+  {name:"Refraction", m:.30, depth:"−", students:14, gap:"Measures angles from the surface, not the normal.", tag:"Angle reference", group:"C"},
+];
+const valleysUL = document.getElementById("valleys");
+valleysUL.innerHTML = valleyData.map((v,i)=>`
+  <li class="valley">
+    <div class="depth num">${Math.round(v.m*100)}%</div>
+    <div>
+      <h3>${v.name}</h3>
+      <p>${v.gap}</p>
+      <div class="chips"><span class="chip"><b class="num">${v.students}</b> students</span><span class="chip">${v.tag}</span></div>
+    </div>
+    <button aria-pressed="${i===0}" data-i="${i}">${i===0?"Grouped":"Group these"}</button>
+  </li>`).join("");
+valleysUL.addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  valleysUL.querySelectorAll("button").forEach(x=>{x.setAttribute("aria-pressed","false");x.textContent="Group these";});
+  b.setAttribute("aria-pressed","true"); b.textContent="Grouped";
+});
+
+/* ---------- tabs ---------- */
+function go(tab){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on", s.id===tab));
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
+  if(tab==="terrain") document.getElementById("map").classList.add("ready");
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.tab)));
+
+/* ---------- practice interactions ---------- */
+document.querySelectorAll(".opt").forEach(o=>o.addEventListener("click",()=>{
+  document.querySelectorAll(".opt").forEach(x=>x.setAttribute("aria-checked","false"));
+  o.setAttribute("aria-checked","true");
+}));
+
+/* ---------- one orchestrated reveal on load ---------- */
+select("parallel");
+requestAnimationFrame(()=>setTimeout(()=>document.getElementById("map").classList.add("ready"), 120));
+</script>
+</body>
+</html>
