@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { computeTeacherClassData } from "@/app/api/teacher/class/route";
-import { TeacherResponse } from "@/lib/types";
+import { computeTeacherClassData } from "@/lib/teacher";
+import type { TeacherResponse } from "@/lib/types";
 
 export async function GET() {
   const response: TeacherResponse = computeTeacherClassData();
