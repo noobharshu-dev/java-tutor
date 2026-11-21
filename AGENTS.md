@@ -1,6 +1,6 @@
 # GIT WORKFLOW: follow this automatically, without me reminding you
 
-ROLE: <<< BACKEND >>>
+ROLE: <<< FRONTEND >>>
 - BACKEND owns: /app/api, /lib, /data. Never edit /app pages or /components.
 - FRONTEND owns: /app (except /app/api) and /components. Never edit /app/api, /lib, /data.
 - /lib/types.ts is the shared contract. NEVER change it on your own. If a change seems needed, stop and ask me first.

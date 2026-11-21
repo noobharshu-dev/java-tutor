@@ -43,3 +43,9 @@ data/store.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local application data
+/data/store.json
+
+# agents skills
+.agents/
