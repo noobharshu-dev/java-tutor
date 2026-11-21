@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
 import { recordAnswer, getQuestion, getQuestions, SAMPLE_QUESTIONS } from "@/lib/store";
-import { diagnoseCorrectAnswerReasoning } from "@/lib/misconception";
+import { detectMisconception, diagnoseCorrectAnswerReasoning } from "@/lib/misconception";
 import { AnswerRequest, AnswerResponse, DetectedMisconception } from "@/lib/types";
+
+const CANONICAL_MISCONCEPTION_IDS = new Set([
+  "M1",
+  "M2",
+  "M3",
+  "M4",
+  "M5",
+  "M6",
+  "M7",
+  "M8",
+]);
 
 export async function POST(request: Request) {
   try {
@@ -19,10 +30,29 @@ export async function POST(request: Request) {
       getQuestion(body.question_id) ||
       SAMPLE_QUESTIONS.find((q) => q.id === body.question_id);
 
-    const isCorrect = question ? question.correct_option === body.option_id : false;
+    if (!question) {
+      return NextResponse.json(
+        { error: `Question not found: ${body.question_id}` },
+        { status: 404 }
+      );
+    }
 
+    const isCorrect = question.correct_option === body.option_id;
     let detectedMisconception: DetectedMisconception | null = null;
-    if (isCorrect && body.reasoning && question) {
+
+    if (!isCorrect) {
+      const chosenOption =
+        question.options.find((o) => o.id === body.option_id) || {
+          id: body.option_id,
+          text: body.option_id,
+          misconception_id: null,
+        };
+      detectedMisconception = await detectMisconception(
+        question,
+        chosenOption,
+        body.reasoning || ""
+      );
+    } else if (body.reasoning) {
       detectedMisconception = await diagnoseCorrectAnswerReasoning(
         question,
         body.option_id,
@@ -30,11 +60,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const response: AnswerResponse = await recordAnswer(
-      body,
-      isCorrect ? detectedMisconception : undefined
-    );
-    return NextResponse.json(response);
+    // Ensure student history analytics only stores canonical M1–M8 or "CUSTOM"
+    const historySafeMisconception: DetectedMisconception | null = detectedMisconception
+      ? {
+          ...detectedMisconception,
+          id: CANONICAL_MISCONCEPTION_IDS.has(detectedMisconception.id)
+            ? detectedMisconception.id
+            : "CUSTOM",
+        }
+      : null;
+
+    const response: AnswerResponse = await recordAnswer(body, historySafeMisconception);
+
+    return NextResponse.json({
+      ...response,
+      misconception: detectedMisconception,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Invalid request payload or server error", details: String(error) },

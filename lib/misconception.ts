@@ -121,29 +121,122 @@ export function fallbackMisconception(
 
 interface GeminiMisconceptionResponse {
   misconception_id: string | null;
+  misconception_name?: string;
   confidence: number;
   explanation: string;
 }
 
 /**
- * Detects student misconception using Gemini with in-memory caching and option fallback.
+ * Smart Question-Specific Fallback (NEVER returns null on a wrong answer).
+ */
+export function smartFallbackMisconception(
+  question: Question,
+  chosenOption: Option,
+  correctOption: { id: string; text: string },
+  reasoning: string,
+  misconceptions: Misconception[] = loadMisconceptions()
+): DetectedMisconception {
+  const userReasoning = reasoning ? reasoning.trim() : "";
+
+  // 1. Check if chosenOption has an explicit misconception_id from catalog M1–M8
+  if (chosenOption.misconception_id) {
+    const m = misconceptions.find((item) => item.id === chosenOption.misconception_id);
+    if (m) {
+      let explanation = `${m.wrong_belief}. Clarification: ${m.correct_idea}.`;
+      if (userReasoning) {
+        explanation = `You reasoned: "${userReasoning}". However, ${m.wrong_belief.toLowerCase()}. In Java, ${m.correct_idea}.`;
+      }
+      return {
+        id: m.id,
+        name: m.name,
+        explanation,
+        confidence: 0.85,
+      };
+    }
+  }
+
+  // 2. Specific fallback for questions outside catalog M1–M8 (e.g. variables-types)
+  const conceptName = question.concept_id.replace(/-/g, " ");
+  const fallbackId = question.concept_id.toUpperCase();
+  const fallbackName = `Misread Java behavior in ${conceptName}`;
+
+  let explanation = "";
+  if (userReasoning) {
+    explanation = `You reasoned: "${userReasoning}". While this led you to choose "${chosenOption.text}", Java evaluates this code to produce "${correctOption.text}". Check how ${conceptName} operates in the JVM.`;
+  } else {
+    explanation = `Choosing "${chosenOption.text}" reflects an inaccurate mental model of ${conceptName} in Java. For this code snippet, the JVM produces "${correctOption.text}".`;
+  }
+
+  return {
+    id: fallbackId,
+    name: fallbackName,
+    explanation,
+    confidence: 0.8,
+  };
+}
+
+/**
+ * Calls Gemini with model fallback and strict timeout to prevent hangs.
+ */
+async function callGeminiJson(ai: GoogleGenAI, prompt: string, timeoutMs = 6000): Promise<string> {
+  const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
+  let lastError: unknown = null;
+
+  for (const model of models) {
+    try {
+      const generatePromise = ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        },
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const id = setTimeout(() => {
+          clearTimeout(id);
+          reject(new Error(`Gemini model ${model} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+
+      const response = await Promise.race([generatePromise, timeoutPromise]);
+      return response.text?.trim() || "";
+    } catch (err) {
+      lastError = err;
+      continue;
+    }
+  }
+
+  throw lastError || new Error("All Gemini models failed");
+}
+
+/**
+ * Detects student misconception using Gemini with in-memory caching and smart question fallback.
+ * ALWAYS returns a specific, reasoning-driven DetectedMisconception on a wrong answer (never null!).
  */
 export async function detectMisconception(
   question: Question,
   chosenOption: Option,
   reasoning: string
-): Promise<DetectedMisconception | null> {
+): Promise<DetectedMisconception> {
   const cacheKey = computeCacheKey(question.id, chosenOption.id, reasoning);
   if (misconceptionCache.has(cacheKey)) {
-    return misconceptionCache.get(cacheKey)!;
+    const cached = misconceptionCache.get(cacheKey);
+    if (cached) return cached;
   }
 
   const misconceptions = loadMisconceptions();
   const candidateMisconceptions = getMisconceptionsForConceptWithNeighbors(question.concept_id);
+  const correctOption =
+    question.options.find((o) => o.id === question.correct_option) || {
+      id: question.correct_option,
+      text: question.correct_option,
+      misconception_id: null,
+    };
   const apiKey = getGeminiApiKey();
 
   if (!apiKey) {
-    const fallback = fallbackMisconception(chosenOption, misconceptions);
+    const fallback = smartFallbackMisconception(question, chosenOption, correctOption, reasoning, misconceptions);
     misconceptionCache.set(cacheKey, fallback);
     return fallback;
   }
@@ -152,19 +245,20 @@ export async function detectMisconception(
     const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `You are an expert Java computer science tutor diagnosing student errors.
-Analyze the student's selected answer and written reasoning for the following Java question.
+Analyze the student's selected WRONG answer and written reasoning for the following Java question.
 
 --- Question ---
+Concept: ${question.concept_id}
 Prompt: ${question.prompt}
-${question.code ? `Code:\n${question.code}` : ""}
-Correct Answer Option ID: ${question.correct_option}
+${question.code ? `Code:\n${question.code}` : "No code snippet provided"}
+Correct Answer Option: "${correctOption.text}" (ID: ${question.correct_option})
 
 --- Student Submission ---
-Selected Option: "${chosenOption.text}" (ID: ${chosenOption.id})
+Selected WRONG Option: "${chosenOption.text}" (ID: ${chosenOption.id})
 Associated Option Misconception ID: ${chosenOption.misconception_id || "None"}
-Student's Stated Reasoning: "${reasoning || "No reasoning provided."}"
+Student's Stated Reasoning: "${reasoning ? reasoning.trim() : "No reasoning provided."}"
 
---- Candidate Misconceptions (Relevant to this concept and its neighbors) ---
+--- Candidate Catalog Misconceptions (M1–M8) ---
 ${JSON.stringify(
   candidateMisconceptions.map((m) => ({
     id: m.id,
@@ -178,45 +272,51 @@ ${JSON.stringify(
 )}
 
 --- Instructions ---
-1. Identify if the student demonstrates a known misconception.
-2. If the student's reasoning reveals a misconception DIFFERENT from the option's default misconception, PREFER the reasoning.
-3. If the student did not demonstrate any listed misconception or is correct, set misconception_id to null and confidence to 0.
-4. Output must be strictly valid JSON matching this schema:
+1. Identify the exact flawed mental model or Java rule misunderstanding that led the student to pick "${chosenOption.text}".
+2. If the student's mistake matches one of the catalog misconceptions M1–M8, set "misconception_id" to that ID (e.g. "M1").
+3. If it is a Java misconception outside M1–M8 (such as widening int to double printing 10.0, integer truncation, operator precedence, string immutability, reference assignment, etc.), set "misconception_id" to "CUSTOM".
+4. ALWAYS provide a sharp, accurate "misconception_name" (short 4-8 words title of the exact wrong belief).
+5. In "explanation", write 2-3 crisp sentences directly quoting or addressing the student's reasoning (if provided), explaining why their choice "${chosenOption.text}" is wrong on THIS exact code snippet, and stating the exact Java rule that produces "${correctOption.text}".
+6. Output must be strictly valid JSON matching this schema:
 {
-  "misconception_id": string or null,
-  "confidence": number between 0 and 1,
-  "explanation": "one friendly sentence to the student addressing their mistake and gently correcting them"
+  "misconception_id": "M1..M8 or CUSTOM",
+  "misconception_name": "Short 4-8 word title of the exact wrong belief",
+  "confidence": number between 0.7 and 1.0,
+  "explanation": "2-3 crisp sentences directly addressing their reasoning, why their choice is wrong for this code, and the exact Java rule for the correct output."
 }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const text = response.text?.trim() || "";
+    const text = await callGeminiJson(ai, prompt);
     const parsed: GeminiMisconceptionResponse = JSON.parse(text);
 
-    let result: DetectedMisconception | null = null;
-    if (parsed.misconception_id) {
-      const match = misconceptions.find((m) => m.id === parsed.misconception_id);
-      if (match) {
-        result = {
-          id: match.id,
-          name: match.name,
-          explanation: parsed.explanation || match.correct_idea,
-          confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0.85)),
-        };
-      }
-    }
+    const rawId = typeof parsed.misconception_id === "string" ? parsed.misconception_id.trim() : "CUSTOM";
+    const catalogMatch = misconceptions.find((m) => m.id === rawId);
+
+    const name =
+      typeof parsed.misconception_name === "string" && parsed.misconception_name.trim()
+        ? parsed.misconception_name.trim()
+        : catalogMatch?.name || `Misconception in ${question.concept_id.replace(/-/g, " ")}`;
+
+    const explanation =
+      typeof parsed.explanation === "string" && parsed.explanation.trim()
+        ? parsed.explanation.trim()
+        : catalogMatch
+        ? `${catalogMatch.wrong_belief}. Clarification: ${catalogMatch.correct_idea}`
+        : `Selected "${chosenOption.text}", but Java produces "${correctOption.text}".`;
+
+    const confidence = Math.max(0.7, Math.min(1, Number(parsed.confidence) || 0.9));
+
+    const result: DetectedMisconception = {
+      id: catalogMatch ? catalogMatch.id : "CUSTOM",
+      name,
+      explanation,
+      confidence,
+    };
 
     misconceptionCache.set(cacheKey, result);
     return result;
   } catch (err) {
-    console.error("Gemini misconception detection failed, falling back to option misconception:", err);
-    const fallback = fallbackMisconception(chosenOption, misconceptions);
+    console.error("[Gemini diagnosis error]", err);
+    const fallback = smartFallbackMisconception(question, chosenOption, correctOption, reasoning, misconceptions);
     misconceptionCache.set(cacheKey, fallback);
     return fallback;
   }
@@ -324,6 +424,16 @@ function fallbackCorrectAnswerMisconception(
     };
   }
 
+  // Guessing detection
+  if (lower.includes("guess") || lower.includes("guessed") || lower.includes("random pick")) {
+    return {
+      id: "CUSTOM",
+      name: "Guessing Without Semantic Verification",
+      explanation: "You selected the correct option, but stated you were guessing rather than reasoning through Java execution mechanics.",
+      confidence: 0.8,
+    };
+  }
+
   return null;
 }
 
@@ -335,7 +445,7 @@ export async function diagnoseCorrectAnswerReasoning(
   optionId: string,
   reasoning: string
 ): Promise<DetectedMisconception | null> {
-  if (!reasoning || reasoning.trim().length < 6) {
+  if (!reasoning || reasoning.trim().length < 4) {
     return null;
   }
 
@@ -348,6 +458,12 @@ export async function diagnoseCorrectAnswerReasoning(
 
   const misconceptions = loadMisconceptions();
   const candidateMisconceptions = getMisconceptionsForConceptWithNeighbors(question.concept_id);
+  const correctOption =
+    question.options.find((o) => o.id === question.correct_option) || {
+      id: question.correct_option,
+      text: question.correct_option,
+      misconception_id: null,
+    };
   const apiKey = getGeminiApiKey();
 
   if (!apiKey) {
@@ -361,18 +477,19 @@ export async function diagnoseCorrectAnswerReasoning(
 
     const prompt = `You are an expert Java computer science tutor evaluating a student's answer.
 Context: The student selected the CORRECT multiple-choice option for this Java question.
-However, we need to diagnose whether their written reasoning reveals a FALSE BELIEF, FLAWED MENTAL MODEL, or KNOWN MISCONCEPTION despite getting the answer right.
+However, we need to diagnose whether their written reasoning reveals a FALSE BELIEF, FLAWED MENTAL MODEL, GUESS, or WRONG JAVA RULE despite getting the answer right.
 
 --- Question ---
+Concept: ${question.concept_id}
 Prompt: ${question.prompt}
-${question.code ? `Code:\n${question.code}` : ""}
-Correct Answer Option ID: ${question.correct_option}
+${question.code ? `Code:\n${question.code}` : "No code snippet provided"}
+Correct Answer Option: "${correctOption.text}" (ID: ${question.correct_option})
 
 --- Student Submission ---
-Selected Option ID: ${optionId} (CORRECT)
+Selected Option: "${correctOption.text}" (ID: ${optionId}) (CORRECT)
 Student's Written Reasoning: "${reasoning.trim()}"
 
---- Candidate Misconceptions (Relevant to this concept and its neighbors) ---
+--- Catalog Misconceptions (M1–M8) ---
 ${JSON.stringify(
   candidateMisconceptions.map((m) => ({
     id: m.id,
@@ -386,47 +503,59 @@ ${JSON.stringify(
 )}
 
 --- Instructions ---
-1. Check ONLY the student's reasoning.
-2. If their reasoning is sound, accurate, or too brief/vague to prove a false belief, set "misconception_id" to null, "confidence" to 0, and "explanation" to "".
-3. ONLY if their reasoning explicitly demonstrates a flawed mental model matching one of the candidate misconceptions (e.g. believing == compares string text/contents, integer division produces decimals, Java passes objects by reference, assignment copies an object/array, static fields belong to individual objects), return that "misconception_id" (ONLY if confidence >= 0.7), its confidence, and a crisp 2-sentence explanation contrasting what they assumed with how Java actually behaves.
+1. Evaluate ONLY the student's written reasoning.
+2. If their reasoning is sound, accurate, and reflects correct Java mechanics, return:
+   { "misconception_id": null, "misconception_name": "", "confidence": 0, "explanation": "" }
+3. If their reasoning reveals a flawed mental model, wrong rule (even outside M1–M8, such as misunderstanding widening, guessing, incorrect operator rules, etc.):
+   - If matching M1–M8, set "misconception_id" to that ID.
+   - Otherwise set "misconception_id" to "CUSTOM".
+   - Provide a short 4-8 word "misconception_name" capturing their false belief.
+   - In "explanation", write 2 crisp sentences directly quoting/contrasting their reasoning with the actual Java JVM semantics for this code.
+   - "confidence": number between 0.7 and 1.0.
 4. Output must be strictly valid JSON matching this schema:
 {
   "misconception_id": string or null,
+  "misconception_name": string,
   "confidence": number,
   "explanation": string
 }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    const text = response.text?.trim() || "";
+    const text = await callGeminiJson(ai, prompt);
     const parsed: GeminiMisconceptionResponse = JSON.parse(text);
 
     let result: DetectedMisconception | null = null;
-    if (parsed.misconception_id && Number(parsed.confidence) >= 0.7) {
-      const match =
-        candidateMisconceptions.find((m) => m.id === parsed.misconception_id) ||
-        misconceptions.find((m) => m.id === parsed.misconception_id);
+    if (
+      parsed.misconception_id &&
+      parsed.misconception_id !== "null" &&
+      parsed.misconception_id !== null &&
+      Number(parsed.confidence) >= 0.7
+    ) {
+      const rawId = String(parsed.misconception_id).trim();
+      const catalogMatch = misconceptions.find((m) => m.id === rawId);
+      const name =
+        typeof parsed.misconception_name === "string" && parsed.misconception_name.trim()
+          ? parsed.misconception_name.trim()
+          : catalogMatch?.name || "Flawed Reasoning on Correct Answer";
 
-      if (match) {
-        result = {
-          id: match.id,
-          name: match.name,
-          explanation: parsed.explanation || `${match.wrong_belief}. Clarification: ${match.correct_idea}`,
-          confidence: Math.max(0, Math.min(1, Number(parsed.confidence))),
-        };
-      }
+      const explanation =
+        typeof parsed.explanation === "string" && parsed.explanation.trim()
+          ? parsed.explanation.trim()
+          : catalogMatch
+          ? `${catalogMatch.wrong_belief}. Clarification: ${catalogMatch.correct_idea}`
+          : "Your output matched, but your stated reasoning does not reflect Java mechanics.";
+
+      result = {
+        id: catalogMatch ? catalogMatch.id : "CUSTOM",
+        name,
+        explanation,
+        confidence: Math.max(0.7, Math.min(1, Number(parsed.confidence))),
+      };
     }
 
     misconceptionCache.set(cacheKey, result);
     return result;
   } catch (err) {
-    console.error("Gemini correct reasoning diagnosis failed, using fallback check:", err);
+    console.error("[Gemini correct diagnosis error]", err);
     const fallback = fallbackCorrectAnswerMisconception(reasoning, candidateMisconceptions);
     misconceptionCache.set(cacheKey, fallback);
     return fallback;

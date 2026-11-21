@@ -35,6 +35,11 @@ interface SpeechRecognitionEventLike extends Event {
   results: SpeechRecognitionResultList;
 }
 
+interface SpeechRecognitionErrorEventLike extends Event {
+  error: string;
+  message?: string;
+}
+
 interface SpeechRecognitionLike extends EventTarget {
   lang: string;
   interimResults: boolean;
@@ -42,6 +47,7 @@ interface SpeechRecognitionLike extends EventTarget {
   start(): void;
   stop(): void;
   abort(): void;
+  onstart: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: ((event: Event) => void) | null;
   onend: (() => void) | null;
@@ -99,70 +105,107 @@ export function QuestionRunner({
 
   const speechSupported = useSyncExternalStore(emptySubscribe, checkSpeechSupport, getServerSnapshot);
   const [isListening, setIsListening] = useState(false);
+  const isListeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const initialTextBeforeSpeechRef = useRef<string>("");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [submittedReasoning, setSubmittedReasoning] = useState<string>("");
 
+  // Dedicated unmount-only cleanup with empty dependency array
   useEffect(() => {
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-        recognitionRef.current = null;
+      try {
+        recognitionRef.current?.abort();
+      } catch {
+        // ignore
       }
     };
   }, []);
 
-  const toggleListening = () => {
+  const handleToggleVoice = () => {
     if (typeof window === "undefined") return;
+    setVoiceError(null);
 
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
+    if (isListeningRef.current) {
+      isListeningRef.current = false;
       setIsListening(false);
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // ignore
+      }
       return;
     }
 
     const win = window as unknown as WindowWithSpeech;
     const SpeechConstructor = win.SpeechRecognition || win.webkitSpeechRecognition;
-    if (!SpeechConstructor) return;
+    if (!SpeechConstructor) {
+      setVoiceError("Voice input requires Chrome or Edge.");
+      return;
+    }
 
     try {
-      const baseText = reasoning.trim();
-      initialTextBeforeSpeechRef.current = baseText;
+      recognitionRef.current?.abort();
+    } catch {
+      // ignore
+    }
 
+    try {
       const recognition = new SpeechConstructor();
-      recognition.lang = "en-US";
+      recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.continuous = false;
+      recognition.lang = "en-US";
+
+      const baseReasoning = reasoning.trim();
+
+      recognition.onstart = () => {
+        isListeningRef.current = true;
+        setIsListening(true);
+      };
 
       recognition.onresult = (event: SpeechRecognitionEventLike) => {
-        let liveTranscript = "";
+        let transcript = "";
         for (let i = 0; i < event.results.length; i++) {
           const item = event.results[i];
           if (item && item[0]) {
-            liveTranscript += item[0].transcript;
+            transcript += item[0].transcript;
           }
         }
-        const prefix = initialTextBeforeSpeechRef.current
-          ? `${initialTextBeforeSpeechRef.current} `
-          : "";
-        setReasoning(prefix + liveTranscript);
+        const cleanTranscript = transcript.trim();
+        if (cleanTranscript) {
+          setReasoning(baseReasoning ? `${baseReasoning} ${cleanTranscript}` : cleanTranscript);
+        }
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (event: Event) => {
+        const speechEvent = event as unknown as SpeechRecognitionErrorEventLike;
+        const err = speechEvent.error;
+        if (err === "aborted") {
+          return;
+        }
+        if (err === "not-allowed") {
+          setVoiceError("Microphone access blocked—allow mic permission in your browser bar.");
+        } else if (err === "network") {
+          setVoiceError("Browser speech service unavailable—check internet or type below.");
+        } else if (err === "no-speech") {
+          setVoiceError("No speech detected—try speaking closer to your mic.");
+        } else {
+          setVoiceError(`Voice error: ${err || "recognition failed"}`);
+        }
+        isListeningRef.current = false;
         setIsListening(false);
       };
 
       recognition.onend = () => {
+        isListeningRef.current = false;
         setIsListening(false);
       };
 
       recognitionRef.current = recognition;
       recognition.start();
-      setIsListening(true);
     } catch (err) {
-      console.error("Speech recognition error:", err);
+      console.error("Speech recognition startup error:", err);
+      setVoiceError("Could not start microphone. Check browser permissions.");
+      isListeningRef.current = false;
       setIsListening(false);
     }
   };
@@ -217,11 +260,17 @@ export function QuestionRunner({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (recognitionRef.current) {
-      recognitionRef.current.abort();
+    try {
+      recognitionRef.current?.abort();
       recognitionRef.current = null;
-      setIsListening(false);
+    } catch {
+      // ignore
     }
+    isListeningRef.current = false;
+    setIsListening(false);
+    setVoiceError(null);
+    setSubmittedReasoning(reasoning.trim());
+
     if (!question || !selectedOptionId) {
       setErrorMsg("Please select an answer choice before submitting.");
       return;
@@ -271,11 +320,17 @@ export function QuestionRunner({
   };
 
   const handleNextQuestion = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.abort();
+    try {
+      recognitionRef.current?.abort();
       recognitionRef.current = null;
-      setIsListening(false);
+    } catch {
+      // ignore
     }
+    isListeningRef.current = false;
+    setIsListening(false);
+    setVoiceError(null);
+    setSubmittedReasoning("");
+
     if (feedback?.next_question) {
       setQuestion(feedback.next_question);
       if (onCurrentConceptChange) {
@@ -430,8 +485,9 @@ export function QuestionRunner({
                     {speechSupported && (
                       <button
                         type="button"
+                        suppressHydrationWarning
                         disabled={isSubmitting || feedback !== null}
-                        onClick={toggleListening}
+                        onClick={handleToggleVoice}
                         className={
                           isListening
                             ? "bg-[#D94F2B] text-[#FFFDF9] text-xs font-medium px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -476,6 +532,12 @@ export function QuestionRunner({
                   placeholder="e.g. Because both strings contain the same characters in heap memory..."
                   className="w-full bg-[#FFFDF9] border border-[#DDD6C7] focus:border-[#D94F2B] focus:outline-none rounded-lg px-3.5 py-2.5 text-sm text-[#1C1917] placeholder:text-[#A8A29E] resize-none"
                 />
+                {voiceError && (
+                  <p className="text-xs text-[#B53219] flex items-center gap-1.5 pt-1">
+                    <span>⚠️</span>
+                    <span>{voiceError}</span>
+                  </p>
+                )}
               </div>
 
               {errorMsg && (
@@ -518,7 +580,7 @@ export function QuestionRunner({
                     <span className="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#B53219]">
                       {feedback.misconception?.id
                         ? `${feedback.misconception.id} · Misconception Caught`
-                        : "Conceptual Misconception Caught"}
+                        : "Misconception Caught"}
                     </span>
                     {typeof feedback.misconception?.confidence === "number" && (
                       <span className="font-mono text-xs text-[#B53219]">
@@ -528,12 +590,19 @@ export function QuestionRunner({
                   </div>
 
                   <h3 className="font-display text-xl font-semibold text-[#1C1917]">
-                    {feedback.misconception?.name || "Flawed JVM execution assumption"}
+                    {feedback.misconception?.name || "Targeted JVM Concept Diagnosis"}
                   </h3>
+
+                  {submittedReasoning && (
+                    <div className="bg-[#FFFDF9]/80 border-l-2 border-[#D94F2B] px-3.5 py-2 rounded-r-lg text-xs text-[#57534E] italic font-sans">
+                      <span className="not-italic font-medium text-[#1C1917]">Your reasoning: </span>
+                      &ldquo;{submittedReasoning}&rdquo;
+                    </div>
+                  )}
 
                   <p className="font-sans text-sm text-[#44403C] leading-relaxed">
                     {feedback.misconception?.explanation ||
-                      "Your answer indicates a misunderstanding of how Java executes this operation. Review the mechanics and try the next targeted challenge."}
+                      "Review the Java runtime mechanics for this question and proceed to the targeted follow-up."}
                   </p>
 
                   <div className="flex justify-end pt-2">
@@ -565,6 +634,13 @@ export function QuestionRunner({
                     {feedback.misconception.name}
                   </h3>
 
+                  {submittedReasoning && (
+                    <div className="bg-[#FFFDF9]/80 border-l-2 border-[#B45309] px-3.5 py-2 rounded-r-lg text-xs text-[#78350F] italic font-sans">
+                      <span className="not-italic font-medium text-[#1C1917]">Your reasoning: </span>
+                      &ldquo;{submittedReasoning}&rdquo;
+                    </div>
+                  )}
+
                   <p className="font-sans text-xs font-medium text-[#9A5010]">
                     Your output matched, but your reasoning revealed a hidden misconception.
                   </p>
@@ -594,6 +670,13 @@ export function QuestionRunner({
                   <h3 className="font-display text-xl font-semibold text-[#1C1917]">
                     Correct Analysis
                   </h3>
+
+                  {submittedReasoning && (
+                    <div className="bg-[#FFFDF9]/80 border-l-2 border-[#0F766E] px-3.5 py-2 rounded-r-lg text-xs text-[#065F46] italic font-sans">
+                      <span className="not-italic font-medium text-[#1C1917]">Your reasoning: </span>
+                      &ldquo;{submittedReasoning}&rdquo;
+                    </div>
+                  )}
 
                   <p className="font-sans text-sm text-[#44403C] leading-relaxed">
                     Your reasoning accurately mirrors JVM runtime semantics. Concept mastery in{" "}
