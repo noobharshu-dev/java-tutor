@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Navbar } from "@/components/navbar";
+import { Navbar, useSyncedStudentId } from "@/components/navbar";
 import { MasteryGraph } from "@/components/mastery-graph";
 import { ReviewsDuePanel } from "@/components/reviews-due-panel";
 import { GraphSkeleton, ErrorStateCard } from "@/components/loading-skeleton";
@@ -10,12 +10,7 @@ import { ArrowRightIcon } from "@/components/icons";
 import { Concept, MasteryResponse, ReviewItem } from "@/lib/types";
 
 export default function DashboardPage() {
-  const [studentId, setStudentId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("student_id") || "student-1";
-    }
-    return "student-1";
-  });
+  const [studentId, setStudentId] = useSyncedStudentId();
   const [masteryData, setMasteryData] = useState<MasteryResponse | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [reviewsDueCount, setReviewsDueCount] = useState<number>(0);
@@ -28,20 +23,6 @@ export default function DashboardPage() {
     setIsLoading(true);
     setFetchTrigger((c) => c + 1);
   };
-
-  // Listen to external auth changes from Navbar
-  useEffect(() => {
-    const handleAuthEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<{ studentId: string }>;
-      const newId = customEvent.detail?.studentId;
-      if (newId) {
-        setStudentId(newId);
-      }
-    };
-
-    window.addEventListener("javatutor-auth-changed", handleAuthEvent);
-    return () => window.removeEventListener("javatutor-auth-changed", handleAuthEvent);
-  }, []);
 
   useEffect(() => {
     let isMounted = true;

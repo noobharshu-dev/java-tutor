@@ -1,44 +1,27 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Navbar } from "@/components/navbar";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
+import { Navbar, useSyncedStudentId } from "@/components/navbar";
 import { QuestionRunner } from "@/components/question-runner";
 import { MasteryGraph } from "@/components/mastery-graph";
 import { GraphSkeleton } from "@/components/loading-skeleton";
 import { Concept, MasteryResponse } from "@/lib/types";
 
+const getConceptFromUrl = () => {
+  if (typeof window === "undefined") return "string-equality";
+  return new URLSearchParams(window.location.search).get("concept_id") || "string-equality";
+};
+const getServerConcept = () => "string-equality";
+const emptySubscribe = () => () => {};
+
 export default function PracticePage() {
-  const [studentId, setStudentId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("student_id") || "student-1";
-    }
-    return "student-1";
-  });
+  const [studentId, setStudentId] = useSyncedStudentId();
   const [masteryData, setMasteryData] = useState<MasteryResponse | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
-  const [currentConceptId, setCurrentConceptId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const cid = params.get("concept_id");
-      if (cid) return cid;
-    }
-    return "string-equality";
-  });
+  const urlConceptId = useSyncExternalStore(emptySubscribe, getConceptFromUrl, getServerConcept);
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
+  const currentConceptId = selectedConceptId ?? urlConceptId;
   const [isLoading, setIsLoading] = useState(true);
-
-  // Listen to external auth changes
-  useEffect(() => {
-    const handleAuthEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<{ studentId: string }>;
-      const newId = customEvent.detail?.studentId;
-      if (newId) {
-        setStudentId(newId);
-      }
-    };
-
-    window.addEventListener("javatutor-auth-changed", handleAuthEvent);
-    return () => window.removeEventListener("javatutor-auth-changed", handleAuthEvent);
-  }, []);
 
   // Fetch mastery and concepts
   useEffect(() => {
@@ -133,7 +116,7 @@ export default function PracticePage() {
                   edgesList={masteryData?.edges}
                   highlightedConceptId={currentConceptId}
                   compact={true}
-                  onSelectConcept={setCurrentConceptId}
+                  onSelectConcept={setSelectedConceptId}
                 />
               )}
             </div>
@@ -152,7 +135,7 @@ export default function PracticePage() {
               studentId={studentId}
               conceptId={currentConceptId}
               onMasteryChange={handleMasteryUpdate}
-              onCurrentConceptChange={setCurrentConceptId}
+              onCurrentConceptChange={setSelectedConceptId}
             />
           </div>
         </div>

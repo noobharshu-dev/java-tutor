@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthModal, SAMPLE_LEARNERS } from "./auth-modal";
@@ -15,7 +15,7 @@ interface NavbarProps {
   dueReviewsCount?: number;
 }
 
-function lookupStudentName(id: string, fallbackName?: string): string {
+export function lookupStudentName(id: string, fallbackName?: string): string {
   const sample = SAMPLE_LEARNERS.find((l) => l.id === id);
   if (sample) return sample.name;
   if (fallbackName && fallbackName !== "Alex Johnson") {
@@ -36,6 +36,59 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase() || "ST";
 }
 
+function subscribeAuth(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", callback);
+  window.addEventListener("javatutor-auth-changed", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("javatutor-auth-changed", callback);
+  };
+}
+
+function getStoredStudentId(): string {
+  try {
+    return localStorage.getItem("student_id") || "student-1";
+  } catch {
+    return "student-1";
+  }
+}
+
+function getStoredStudentName(): string {
+  try {
+    const stored = localStorage.getItem("student_name");
+    if (stored) return stored;
+    const id = localStorage.getItem("student_id") || "student-1";
+    return lookupStudentName(id);
+  } catch {
+    return "Alex Johnson";
+  }
+}
+
+const getServerStudentId = () => "student-1";
+const getServerStudentName = () => "Alex Johnson";
+
+export function useSyncedStudentId(): [string, (id: string) => void] {
+  const syncedId = useSyncExternalStore(subscribeAuth, getStoredStudentId, getServerStudentId);
+  const [manualId, setManualId] = useState<string | null>(null);
+
+  const setStudentId = (newId: string) => {
+    setManualId(newId);
+    try {
+      localStorage.setItem("student_id", newId);
+    } catch {
+      // ignore
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("javatutor-auth-changed", { detail: { studentId: newId } })
+      );
+    }
+  };
+
+  return [manualId ?? syncedId, setStudentId];
+}
+
 export function Navbar({
   activeTab,
   onSelectTab,
@@ -47,28 +100,24 @@ export function Navbar({
   const router = useRouter();
 
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
-  const [internalStudentId, setInternalStudentId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("student_id") || "student-1";
-    }
-    return "student-1";
-  });
-  const [internalStudentName, setInternalStudentName] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("student_name");
-      if (stored) return stored;
-    }
-    return "Alex Johnson";
-  });
+  const syncedStudentId = useSyncExternalStore(subscribeAuth, getStoredStudentId, getServerStudentId);
+  const syncedStudentName = useSyncExternalStore(subscribeAuth, getStoredStudentName, getServerStudentName);
+
+  const [manualStudentId, setManualStudentId] = useState<string | null>(null);
+  const [manualStudentName, setManualStudentName] = useState<string | null>(null);
 
   // Listen to external auth events from AuthModal or other components
   useEffect(() => {
     const handleAuthEvent = (e: Event) => {
       const customEvent = e as CustomEvent<{ studentId: string; studentName: string }>;
-      const newId = customEvent.detail?.studentId || "";
-      const newName = customEvent.detail?.studentName || "";
-      setInternalStudentId(newId);
-      setInternalStudentName(newName || (newId ? lookupStudentName(newId) : ""));
+      const newId = customEvent.detail?.studentId;
+      const newName = customEvent.detail?.studentName;
+      if (newId) {
+        setManualStudentId(newId);
+      }
+      if (newName) {
+        setManualStudentName(newName);
+      }
       if (onSelectStudent && newId) {
         onSelectStudent(newId);
       }
@@ -78,12 +127,27 @@ export function Navbar({
     return () => window.removeEventListener("javatutor-auth-changed", handleAuthEvent);
   }, [onSelectStudent]);
 
-  const currentId = propStudentId !== undefined ? propStudentId : internalStudentId;
-  const currentName = currentId ? lookupStudentName(currentId, internalStudentName) : "";
+  const currentId = propStudentId !== undefined ? propStudentId : (manualStudentId ?? syncedStudentId);
+  const currentName = currentId
+    ? lookupStudentName(currentId, manualStudentName ?? syncedStudentName)
+    : "";
 
   const handleAuthChange = (newStudentId: string, newStudentName: string) => {
-    setInternalStudentId(newStudentId);
-    setInternalStudentName(newStudentName);
+    setManualStudentId(newStudentId);
+    setManualStudentName(newStudentName);
+    try {
+      localStorage.setItem("student_id", newStudentId);
+      localStorage.setItem("student_name", newStudentName);
+    } catch {
+      // ignore
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("javatutor-auth-changed", {
+          detail: { studentId: newStudentId, studentName: newStudentName },
+        })
+      );
+    }
     if (onSelectStudent && newStudentId) {
       onSelectStudent(newStudentId);
     }
@@ -153,14 +217,21 @@ export function Navbar({
             {currentId ? (
               <button
                 type="button"
+                suppressHydrationWarning
                 onClick={() => setIsAuthOpen(true)}
                 className="flex items-center gap-2.5 bg-[#FFFDF9] hover:bg-[#EFEAE0] border border-[#DDD6C7] rounded-full pl-1.5 pr-3 py-1 text-xs transition-colors cursor-pointer shadow-2xs"
                 title="Switch Learner Profile"
               >
-                <div className="w-6 h-6 rounded-full bg-[#EAE4D8] text-[#1C1917] font-mono text-[11px] font-semibold flex items-center justify-center border border-[#DDD6C7]">
+                <div
+                  suppressHydrationWarning
+                  className="w-6 h-6 rounded-full bg-[#EAE4D8] text-[#1C1917] font-mono text-[11px] font-semibold flex items-center justify-center border border-[#DDD6C7]"
+                >
                   {getInitials(currentName)}
                 </div>
-                <span className="font-medium text-[#1C1917] max-w-[120px] truncate">
+                <span
+                  suppressHydrationWarning
+                  className="font-medium text-[#1C1917] max-w-[120px] truncate"
+                >
                   {currentName}
                 </span>
                 <span className="text-[#78716C] text-[10px]">▼</span>
