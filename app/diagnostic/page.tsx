@@ -1,16 +1,18 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { QuestionRunner } from "@/components/question-runner";
 import { CoffeeIcon, BrainIcon, ArrowRightIcon } from "@/components/icons";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Diagnostic Assessment — JavaTutor",
-  description:
-    "Evaluate your Java conceptual models and uncover subtle misconceptions with instant diagnostic feedback.",
-};
 
 export default function DiagnosticPage() {
+  const [studentId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("student_id") || "student-1";
+    }
+    return "student-1";
+  });
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 pb-16">
       {/* Top Header */}
@@ -39,7 +41,7 @@ export default function DiagnosticPage() {
               <ArrowRightIcon className="w-3.5 h-3.5" />
             </Link>
             <Link
-              href="/"
+              href="/dashboard"
               className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
             >
               Dashboard
@@ -67,7 +69,7 @@ export default function DiagnosticPage() {
         </div>
 
         {/* Runner */}
-        <QuestionRunner mode="diagnostic" studentId="student-1" />
+        <QuestionRunner mode="diagnostic" studentId={studentId} />
       </main>
     </div>
   );

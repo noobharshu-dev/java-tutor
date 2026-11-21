@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Question, AnswerResponse, AnswerRequest } from "@/lib/types";
 import { ShikiCode } from "./shiki-code";
+import { QuestionSkeleton, ErrorStateCard } from "./loading-skeleton";
 import {
   BrainIcon,
   CheckCircleIcon,
@@ -40,6 +41,7 @@ export function QuestionRunner({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<AnswerResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [fetchError, setFetchError] = useState<string>("");
   const [streak, setStreak] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
 
@@ -47,6 +49,14 @@ export function QuestionRunner({
   useEffect(() => {
     onCurrentConceptChangeRef.current = onCurrentConceptChange;
   });
+
+  const [retryCount, setRetryCount] = useState(0);
+
+  const retryLoad = () => {
+    setIsLoadingQuestion(true);
+    setFetchError("");
+    setRetryCount((c) => c + 1);
+  };
 
   // Fetch initial question if not provided
   useEffect(() => {
@@ -56,7 +66,10 @@ export function QuestionRunner({
       if (conceptId) url.searchParams.set("concept_id", conceptId);
 
       fetch(url.toString())
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch question`);
+          return res.json();
+        })
         .then((data: Question) => {
           if (isMounted && data?.id) {
             setQuestion(data);
@@ -65,7 +78,12 @@ export function QuestionRunner({
             }
           }
         })
-        .catch((err) => console.error("Error fetching question:", err))
+        .catch((err) => {
+          if (isMounted) {
+            console.error("Error fetching question:", err);
+            setFetchError("Unable to load question from /api/question. Please verify your connection.");
+          }
+        })
         .finally(() => {
           if (isMounted) setIsLoadingQuestion(false);
         });
@@ -74,7 +92,7 @@ export function QuestionRunner({
     return () => {
       isMounted = false;
     };
-  }, [initialQuestion, conceptId]);
+  }, [initialQuestion, conceptId, retryCount]);
 
   const handleOptionSelect = (optionId: string) => {
     if (feedback) return; // Prevent changing after submit
@@ -149,27 +167,28 @@ export function QuestionRunner({
   const optionLetters = ["A", "B", "C", "D", "E"];
 
   if (isLoadingQuestion) {
-    return (
-      <div className="flex flex-col items-center justify-center p-16 text-center rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl">
-        <RefreshCwIcon className="w-8 h-8 text-indigo-400 animate-spin mb-4" />
-        <h3 className="text-lg font-bold text-white">Loading next diagnostic challenge...</h3>
-        <p className="text-xs text-slate-400 mt-1">Fetching question from /api/question</p>
-      </div>
-    );
+    return <QuestionSkeleton />;
   }
 
-  if (!question) {
+  if (fetchError || !question) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl">
-        <AlertTriangleIcon className="w-8 h-8 text-amber-400 mb-3" />
-        <h3 className="text-lg font-bold text-white">No question found</h3>
-        <p className="text-xs text-slate-400 mt-1">Unable to load question from /api/question.</p>
-        <Link
-          href="/"
-          className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500"
-        >
-          Return to Dashboard
-        </Link>
+      <div className="py-8">
+        <ErrorStateCard
+          title="Diagnostic Challenge Unavailable"
+          message={
+            fetchError ||
+            "Unable to retrieve a diagnostic challenge from /api/question. Please try again."
+          }
+          onRetry={retryLoad}
+        />
+        <div className="mt-4 text-center">
+          <Link
+            href="/"
+            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-4"
+          >
+            &larr; Return to Home
+          </Link>
+        </div>
       </div>
     );
   }

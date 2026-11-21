@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ReviewItem, Concept } from "@/lib/types";
-import { ClockIcon, CheckCircleIcon, ArrowRightIcon, RefreshCwIcon, AlertTriangleIcon } from "./icons";
+import { ClockIcon, CheckCircleIcon, ArrowRightIcon, AlertTriangleIcon } from "./icons";
+import { PanelSkeleton } from "./loading-skeleton";
 
 interface ReviewsDuePanelProps {
   studentId?: string;
@@ -81,10 +82,7 @@ export function ReviewsDuePanel({
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center p-6 text-slate-400">
-          <RefreshCwIcon className="w-5 h-5 animate-spin mr-2 text-indigo-400" />
-          <span className="text-xs">Checking SM-2 retention curves...</span>
-        </div>
+        <PanelSkeleton />
       ) : reviews.length === 0 ? (
         <div className="text-center py-6 text-slate-400">
           <CheckCircleIcon className="w-8 h-8 text-emerald-400 mx-auto mb-2" />

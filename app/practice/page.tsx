@@ -4,11 +4,17 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { QuestionRunner } from "@/components/question-runner";
 import { MasteryGraph } from "@/components/mastery-graph";
-import { CoffeeIcon, CompassIcon, ArrowRightIcon, RefreshCwIcon, AwardIcon } from "@/components/icons";
+import { CoffeeIcon, CompassIcon, ArrowRightIcon, AwardIcon } from "@/components/icons";
+import { GraphSkeleton } from "@/components/loading-skeleton";
 import { Concept, MasteryResponse } from "@/lib/types";
 
 export default function PracticePage() {
-  const [studentId, setStudentId] = useState<string>("student-1");
+  const [studentId, setStudentId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("student_id") || "student-1";
+    }
+    return "student-1";
+  });
   const [masteryData, setMasteryData] = useState<MasteryResponse | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [currentConceptId, setCurrentConceptId] = useState<string>("string-equality");
@@ -104,7 +110,10 @@ export default function PracticePage() {
 
             <select
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
+              onChange={(e) => {
+                setStudentId(e.target.value);
+                localStorage.setItem("student_id", e.target.value);
+              }}
               className="hidden sm:inline-block px-2.5 py-1 text-xs font-medium rounded-xl border border-slate-800 bg-slate-900 text-slate-300 focus:border-indigo-500 focus:outline-none"
             >
               <option value="student-1">Alex Johnson</option>
@@ -159,10 +168,7 @@ export default function PracticePage() {
               {/* Compact React Flow Container */}
               <div className="w-full h-[500px] rounded-2xl overflow-hidden border border-slate-800/80 bg-slate-950 relative">
                 {isLoading ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                    <RefreshCwIcon className="w-6 h-6 text-indigo-400 animate-spin mb-2" />
-                    <span className="text-xs">Loading Knowledge Graph...</span>
-                  </div>
+                  <GraphSkeleton />
                 ) : (
                   <MasteryGraph
                     mastery={masteryMap}

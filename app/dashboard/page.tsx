@@ -4,20 +4,33 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { MasteryGraph } from "@/components/mastery-graph";
 import { ReviewsDuePanel } from "@/components/reviews-due-panel";
-import { CoffeeIcon, BrainIcon, SparklesIcon, CompassIcon, ArrowRightIcon, RefreshCwIcon, AwardIcon, UsersIcon } from "@/components/icons";
+import { CoffeeIcon, BrainIcon, SparklesIcon, CompassIcon, ArrowRightIcon, AwardIcon, UsersIcon } from "@/components/icons";
+import { GraphSkeleton, ErrorStateCard } from "@/components/loading-skeleton";
 import { Concept, MasteryResponse } from "@/lib/types";
 
 export default function DashboardPage() {
-  const [studentId, setStudentId] = useState<string>("student-1");
+  const [studentId, setStudentId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("student_id") || "student-1";
+    }
+    return "student-1";
+  });
   const [masteryData, setMasteryData] = useState<MasteryResponse | null>(null);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string>("");
   const [selectedConceptId, setSelectedConceptId] = useState<string | undefined>(undefined);
+  const [fetchTrigger, setFetchTrigger] = useState(0);
+
+  const retryFetch = () => {
+    setIsLoading(true);
+    setFetchTrigger((c) => c + 1);
+  };
 
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchData() {
+    async function loadDashboard() {
       try {
         const [masteryRes, conceptsRes] = await Promise.all([
           fetch(`/api/mastery?student_id=${studentId}`),
@@ -27,24 +40,30 @@ export default function DashboardPage() {
         if (masteryRes.ok) {
           const mData: MasteryResponse = await masteryRes.json();
           if (isMounted) setMasteryData(mData);
+        } else {
+          throw new Error("Failed to fetch mastery data");
         }
+
         if (conceptsRes.ok) {
           const cData: Concept[] = await conceptsRes.json();
           if (isMounted) setConcepts(cData);
         }
       } catch (err) {
-        console.error("Dashboard data load error:", err);
+        if (isMounted) {
+          console.error("Dashboard data load error:", err);
+          setErrorMsg("Unable to retrieve concept mastery records from /api/mastery.");
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
     }
 
-    void fetchData();
+    void loadDashboard();
 
     return () => {
       isMounted = false;
     };
-  }, [studentId]);
+  }, [studentId, fetchTrigger]);
 
   // Compute aggregate stats
   const masteryMap = masteryData?.mastery || {};
@@ -130,7 +149,10 @@ export default function DashboardPage() {
             <select
               id="learner-select"
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
+              onChange={(e) => {
+                setStudentId(e.target.value);
+                localStorage.setItem("student_id", e.target.value);
+              }}
               className="px-3 py-1.5 text-xs font-medium rounded-xl border border-slate-800 bg-slate-900 text-slate-200 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[36px]"
             >
               <option value="student-1">Alex Johnson (student-1)</option>
@@ -218,9 +240,14 @@ export default function DashboardPage() {
               {/* React Flow Graph Area */}
               <div className="w-full h-[620px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-inner">
                 {isLoading ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-400">
-                    <RefreshCwIcon className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
-                    <p className="text-sm font-semibold text-white">Rendering Knowledge Graph...</p>
+                  <GraphSkeleton />
+                ) : errorMsg ? (
+                  <div className="w-full h-full flex items-center justify-center p-8 bg-slate-950">
+                    <ErrorStateCard
+                      title="Knowledge Graph Unavailable"
+                      message={errorMsg}
+                      onRetry={retryFetch}
+                    />
                   </div>
                 ) : (
                   <MasteryGraph

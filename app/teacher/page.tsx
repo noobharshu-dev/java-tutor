@@ -10,10 +10,10 @@ import {
   CompassIcon,
   SparklesIcon,
   SearchIcon,
-  RefreshCwIcon,
   AwardIcon,
 } from "@/components/icons";
 import { Concept, TeacherResponse } from "@/lib/types";
+import { TableSkeleton } from "@/components/loading-skeleton";
 
 export default function TeacherPage() {
   const [teacherData, setTeacherData] = useState<TeacherResponse | null>(null);
@@ -344,10 +344,7 @@ export default function TeacherPage() {
           {/* Heatmap Table Container */}
           <div className="overflow-x-auto rounded-2xl border border-slate-800 shadow-inner">
             {isLoading ? (
-              <div className="p-12 text-center text-slate-400">
-                <RefreshCwIcon className="w-8 h-8 text-indigo-400 animate-spin mx-auto mb-3" />
-                <span className="text-sm font-semibold text-white">Loading Heatmap Matrix...</span>
-              </div>
+              <TableSkeleton />
             ) : (
               <table className="w-full text-left border-collapse text-xs select-none">
                 <thead>
