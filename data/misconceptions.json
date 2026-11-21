@@ -1,0 +1,10 @@
+[
+  {"id":"M1","concept_id":"string-equality","name":"== compares string contents","wrong_belief":"== checks whether two strings have the same text","correct_idea":"== compares references; .equals() compares contents"},
+  {"id":"M2","concept_id":"operators","name":"int / int gives a decimal","wrong_belief":"5/2 evaluates to 2.5","correct_idea":"integer division truncates, so 5/2 is 2"},
+  {"id":"M3","concept_id":"methods","name":"Java passes objects by reference","wrong_belief":"reassigning a parameter inside a method changes the caller's variable","correct_idea":"Java is always pass-by-value; for objects the reference is copied"},
+  {"id":"M4","concept_id":"arrays","name":"Wrong array indexing","wrong_belief":"arrays start at 1, or arr[arr.length] is the last element","correct_idea":"indexes run 0 to length-1"},
+  {"id":"M5","concept_id":"loops","name":"Off-by-one in loop bounds","wrong_belief":"for(i=0;i<=n;i++) runs n times","correct_idea":"it runs n+1 times; use < for n iterations"},
+  {"id":"M6","concept_id":"references","name":"Assignment copies the object","wrong_belief":"b = a creates an independent copy of the object","correct_idea":"b = a copies the reference, so both point to the same object"},
+  {"id":"M7","concept_id":"static-instance","name":"Static fields are per-object","wrong_belief":"each object has its own copy of a static field","correct_idea":"a static field is shared by the whole class"},
+  {"id":"M8","concept_id":"inheritance","name":"Declared type decides which method runs","wrong_belief":"Animal a = new Dog(); a.speak() calls Animal's version","correct_idea":"overridden methods are chosen by the actual object at runtime"}
+]

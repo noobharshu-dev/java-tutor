@@ -1,0 +1,14 @@
+[
+  {"id":"variables-types","name":"Variables & Data Types","prerequisites":[]},
+  {"id":"operators","name":"Operators & Integer Division","prerequisites":["variables-types"]},
+  {"id":"strings","name":"String Basics","prerequisites":["variables-types"]},
+  {"id":"string-equality","name":"String Equality (== vs equals)","prerequisites":["strings","operators"]},
+  {"id":"conditionals","name":"Conditionals","prerequisites":["operators"]},
+  {"id":"loops","name":"Loops","prerequisites":["conditionals"]},
+  {"id":"arrays","name":"Arrays","prerequisites":["loops"]},
+  {"id":"methods","name":"Methods & Parameter Passing","prerequisites":["variables-types","conditionals"]},
+  {"id":"classes-objects","name":"Classes & Objects","prerequisites":["methods"]},
+  {"id":"references","name":"References & Aliasing","prerequisites":["classes-objects","arrays"]},
+  {"id":"static-instance","name":"Static vs Instance","prerequisites":["classes-objects"]},
+  {"id":"inheritance","name":"Inheritance & Polymorphism","prerequisites":["classes-objects"]}
+]
