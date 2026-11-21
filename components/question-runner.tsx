@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { Question, AnswerResponse, AnswerRequest } from "@/lib/types";
 import { ShikiCode } from "./shiki-code";
 import { QuestionSkeleton, ErrorStateCard } from "./loading-skeleton";
@@ -12,6 +12,55 @@ import {
   SparklesIcon,
 } from "./icons";
 import Link from "next/link";
+
+interface SpeechRecognitionResultItem {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultListItem {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionResultItem;
+  [index: number]: SpeechRecognitionResultItem;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResultListItem;
+  [index: number]: SpeechRecognitionResultListItem;
+}
+
+interface SpeechRecognitionEventLike extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionLike extends EventTarget {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: (() => void) | null;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+interface WindowWithSpeech extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+}
+
+const emptySubscribe = () => () => {};
+const checkSpeechSupport = () => {
+  if (typeof window === "undefined") return false;
+  const win = window as unknown as WindowWithSpeech;
+  return Boolean(win.SpeechRecognition || win.webkitSpeechRecognition);
+};
+const getServerSnapshot = () => false;
 
 interface QuestionRunnerProps {
   mode: "diagnostic" | "practice";
@@ -47,6 +96,76 @@ export function QuestionRunner({
   });
 
   const [retryCount, setRetryCount] = useState(0);
+
+  const speechSupported = useSyncExternalStore(emptySubscribe, checkSpeechSupport, getServerSnapshot);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const initialTextBeforeSpeechRef = useRef<string>("");
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (typeof window === "undefined") return;
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const win = window as unknown as WindowWithSpeech;
+    const SpeechConstructor = win.SpeechRecognition || win.webkitSpeechRecognition;
+    if (!SpeechConstructor) return;
+
+    try {
+      const baseText = reasoning.trim();
+      initialTextBeforeSpeechRef.current = baseText;
+
+      const recognition = new SpeechConstructor();
+      recognition.lang = "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onresult = (event: SpeechRecognitionEventLike) => {
+        let liveTranscript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          const item = event.results[i];
+          if (item && item[0]) {
+            liveTranscript += item[0].transcript;
+          }
+        }
+        const prefix = initialTextBeforeSpeechRef.current
+          ? `${initialTextBeforeSpeechRef.current} `
+          : "";
+        setReasoning(prefix + liveTranscript);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+    } catch (err) {
+      console.error("Speech recognition error:", err);
+      setIsListening(false);
+    }
+  };
 
   const retryLoad = () => {
     setIsLoadingQuestion(true);
@@ -98,6 +217,11 @@ export function QuestionRunner({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+      recognitionRef.current = null;
+      setIsListening(false);
+    }
     if (!question || !selectedOptionId) {
       setErrorMsg("Please select an answer choice before submitting.");
       return;
@@ -147,6 +271,11 @@ export function QuestionRunner({
   };
 
   const handleNextQuestion = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+      recognitionRef.current = null;
+      setIsListening(false);
+    }
     if (feedback?.next_question) {
       setQuestion(feedback.next_question);
       if (onCurrentConceptChange) {
@@ -297,9 +426,47 @@ export function QuestionRunner({
                   >
                     Why did you choose this answer?
                   </label>
-                  <span className="font-mono text-[11px] text-[#78716C]">
-                    1-line reasoning
-                  </span>
+                  <div className="flex items-center gap-2.5">
+                    {speechSupported && (
+                      <button
+                        type="button"
+                        disabled={isSubmitting || feedback !== null}
+                        onClick={toggleListening}
+                        className={
+                          isListening
+                            ? "bg-[#D94F2B] text-[#FFFDF9] text-xs font-medium px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                            : "bg-[#FFFDF9] hover:bg-[#EFEAE0] border border-[#DDD6C7] text-[#1C1917] text-xs font-medium px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 transition-all cursor-pointer"
+                        }
+                      >
+                        {isListening ? (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                            <span>Listening… Stop</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-3.5 h-3.5 text-[#57534E]"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                              />
+                            </svg>
+                            <span>Speak reasoning</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <span className="font-mono text-[11px] text-[#78716C]">
+                      1-line reasoning
+                    </span>
+                  </div>
                 </div>
                 <textarea
                   id="reasoning-input"
@@ -345,6 +512,7 @@ export function QuestionRunner({
           {feedback && (
             <div className="pt-2">
               {!feedback.correct ? (
+                /* State 1: Wrong Answer */
                 <div className="bg-[#FCECE8]/85 border border-[#F2C0B5] rounded-xl p-5 space-y-3 animate-fade-up">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#B53219]">
@@ -379,7 +547,45 @@ export function QuestionRunner({
                     </button>
                   </div>
                 </div>
+              ) : feedback.misconception ? (
+                /* State 2: Right Answer + Misconception Caught */
+                <div className="bg-[#FEF3D6] border border-[#F0D18A] rounded-xl p-5 space-y-3 animate-fade-up">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#9A5010]">
+                      RIGHT ANSWER · FLAWED MENTAL MODEL · {feedback.misconception.id}
+                    </span>
+                    {typeof feedback.misconception.confidence === "number" && (
+                      <span className="font-mono text-xs font-semibold text-[#9A5010]">
+                        {Math.round(feedback.misconception.confidence * 100)}% confidence
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="font-display text-xl font-semibold text-[#1C1917]">
+                    {feedback.misconception.name}
+                  </h3>
+
+                  <p className="font-sans text-xs font-medium text-[#9A5010]">
+                    Your output matched, but your reasoning revealed a hidden misconception.
+                  </p>
+
+                  <p className="font-sans text-sm text-[#44403C] leading-relaxed">
+                    {feedback.misconception.explanation}
+                  </p>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleNextQuestion}
+                      className="bg-[#1C1917] hover:bg-[#292524] text-[#FFFDF9] font-medium px-5 py-2.5 rounded-xl transition-all active:translate-y-[1px] text-sm flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>Next Adaptive Question</span>
+                      <ArrowRightIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               ) : (
+                /* State 3: Right Answer + Sound Reasoning */
                 <div className="bg-[#E6F4F1] border border-[#B2DDD5] rounded-xl p-5 space-y-3 animate-fade-up">
                   <div className="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#0F766E]">
                     Mental Model Verified

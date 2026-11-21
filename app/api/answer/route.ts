@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { recordAnswer } from "@/lib/store";
-import { AnswerRequest, AnswerResponse } from "@/lib/types";
+import { recordAnswer, getQuestion, getQuestions, SAMPLE_QUESTIONS } from "@/lib/store";
+import { diagnoseCorrectAnswerReasoning } from "@/lib/misconception";
+import { AnswerRequest, AnswerResponse, DetectedMisconception } from "@/lib/types";
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +13,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const response: AnswerResponse = await recordAnswer(body);
+    const questionBank = getQuestions();
+    const question =
+      questionBank.find((q) => q.id === body.question_id) ||
+      getQuestion(body.question_id) ||
+      SAMPLE_QUESTIONS.find((q) => q.id === body.question_id);
+
+    const isCorrect = question ? question.correct_option === body.option_id : false;
+
+    let detectedMisconception: DetectedMisconception | null = null;
+    if (isCorrect && body.reasoning && question) {
+      detectedMisconception = await diagnoseCorrectAnswerReasoning(
+        question,
+        body.option_id,
+        body.reasoning
+      );
+    }
+
+    const response: AnswerResponse = await recordAnswer(
+      body,
+      isCorrect ? detectedMisconception : undefined
+    );
     return NextResponse.json(response);
   } catch (error) {
     return NextResponse.json(

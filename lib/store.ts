@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import type {
   Concept,
   Misconception,
@@ -11,9 +12,10 @@ import type {
   ReviewItem,
   TeacherResponse,
 } from "./types";
-import { getInitialMastery, updateMastery, pickNextConcept } from "./learner";
-import { detectMisconception } from "./misconception";
+import { getInitialMastery, updateMastery } from "./learner";
+import { detectMisconception, diagnoseCorrectAnswerReasoning } from "./misconception";
 import { getQuestions, nextQuestion as selectNextQuestion } from "./questions";
+export { getQuestions };
 import { calculateSM2 } from "./sm2";
 
 export interface SM2State {
@@ -46,6 +48,7 @@ export interface StoreData {
 }
 
 const STORE_PATH = path.join(process.cwd(), "data", "store.json");
+const TMP_STORE_PATH = path.join(os.tmpdir(), "javatutor-store.json");
 
 // Helper: load concepts.json
 export function getConcepts(): Concept[] {
@@ -350,7 +353,18 @@ export function loadStore(): StoreData {
       return data;
     }
   } catch (err) {
-    console.error("Failed to read store.json, re-initializing:", err);
+    console.warn("Primary store read failed, attempting temp store fallback:", err);
+  }
+
+  try {
+    if (fs.existsSync(TMP_STORE_PATH)) {
+      const raw = fs.readFileSync(TMP_STORE_PATH, "utf-8");
+      const data = JSON.parse(raw);
+      globalForStore.__javaTutorStore = data;
+      return data;
+    }
+  } catch (err) {
+    console.warn("Fallback temp store read failed:", err);
   }
 
   const defaultData = createInitialStore();
@@ -367,8 +381,20 @@ export function saveStore(data: StoreData): void {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+    return;
   } catch (err) {
-    console.error("Failed to write store.json:", err);
+    // EROFS / EACCES on read-only serverless filesystems (e.g. Vercel)
+    console.warn("Primary store write failed (read-only filesystem?), falling back to temp dir:", err);
+  }
+
+  try {
+    const tmpDir = path.dirname(TMP_STORE_PATH);
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+    }
+    fs.writeFileSync(TMP_STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+  } catch (tmpErr) {
+    console.error("Fallback temp store write failed:", tmpErr);
   }
 }
 
@@ -494,7 +520,10 @@ export function getNextQuestion(currentQuestionId?: string): Question {
 }
 
 
-export async function recordAnswer(req: AnswerRequest): Promise<AnswerResponse> {
+export async function recordAnswer(
+  req: AnswerRequest,
+  preDiagnosedMisconception?: DetectedMisconception | null
+): Promise<AnswerResponse> {
   const store = loadStore();
   const student = getStudent(req.student_id);
 
@@ -510,6 +539,10 @@ export async function recordAnswer(req: AnswerRequest): Promise<AnswerResponse> 
   let detectedMisconception: DetectedMisconception | null = null;
   if (!isCorrect) {
     detectedMisconception = await detectMisconception(question, selectedOption, req.reasoning);
+  } else if (preDiagnosedMisconception !== undefined) {
+    detectedMisconception = preDiagnosedMisconception;
+  } else if (req.reasoning) {
+    detectedMisconception = await diagnoseCorrectAnswerReasoning(question, req.option_id, req.reasoning);
   }
 
   // Update mastery using learner model (mastery += 0.3 * (target - mastery); reduce prereqs if wrong)
