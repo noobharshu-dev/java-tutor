@@ -27,7 +27,7 @@ function loadMisconceptions(): Misconception[] {
   return JSON.parse(raw);
 }
 
-export function computeTeacherClassData(): TeacherResponse {
+function computeTeacherClassData(): TeacherResponse {
   const seedStudents = loadSeedStudents();
   const concepts = loadConcepts();
   const misconceptions = loadMisconceptions();

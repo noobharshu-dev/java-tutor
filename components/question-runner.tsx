@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Question, AnswerResponse, AnswerRequest } from "@/lib/types";
 import { ShikiCode } from "./shiki-code";
 import {
@@ -21,6 +21,8 @@ interface QuestionRunnerProps {
   initialQuestion?: Question | null;
   studentId?: string;
   conceptId?: string;
+  onMasteryChange?: (mastery: Record<string, number>) => void;
+  onCurrentConceptChange?: (conceptId: string) => void;
 }
 
 export function QuestionRunner({
@@ -28,6 +30,8 @@ export function QuestionRunner({
   initialQuestion,
   studentId = "student-1",
   conceptId,
+  onMasteryChange,
+  onCurrentConceptChange,
 }: QuestionRunnerProps) {
   const [question, setQuestion] = useState<Question | null>(initialQuestion || null);
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(!initialQuestion);
@@ -38,6 +42,11 @@ export function QuestionRunner({
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [streak, setStreak] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
+
+  const onCurrentConceptChangeRef = useRef(onCurrentConceptChange);
+  useEffect(() => {
+    onCurrentConceptChangeRef.current = onCurrentConceptChange;
+  });
 
   // Fetch initial question if not provided
   useEffect(() => {
@@ -51,6 +60,9 @@ export function QuestionRunner({
         .then((data: Question) => {
           if (isMounted && data?.id) {
             setQuestion(data);
+            if (onCurrentConceptChangeRef.current) {
+              onCurrentConceptChangeRef.current(data.concept_id);
+            }
           }
         })
         .catch((err) => console.error("Error fetching question:", err))
@@ -109,6 +121,9 @@ export function QuestionRunner({
       } else {
         setStreak(0);
       }
+      if (result.mastery && onMasteryChange) {
+        onMasteryChange(result.mastery);
+      }
     } catch (err) {
       console.error("Submission failed:", err);
       setErrorMsg("Failed to evaluate answer. Please try again.");
@@ -120,6 +135,9 @@ export function QuestionRunner({
   const handleNextQuestion = () => {
     if (feedback?.next_question) {
       setQuestion(feedback.next_question);
+      if (onCurrentConceptChange) {
+        onCurrentConceptChange(feedback.next_question.concept_id);
+      }
     }
     // Reset state for next question
     setSelectedOptionId("");

@@ -113,6 +113,13 @@ export function Navbar({
             {/* Direct Page Links */}
             <div className="flex items-center gap-1.5 border-l border-slate-800 pl-2">
               <Link
+                href="/dashboard"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-purple-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 transition-colors flex items-center gap-1.5"
+              >
+                <CompassIcon className="w-3.5 h-3.5" />
+                <span>/dashboard</span>
+              </Link>
+              <Link
                 href="/diagnostic"
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800/60 transition-colors flex items-center gap-1.5"
               >
