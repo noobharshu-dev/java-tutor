@@ -35,3 +35,13 @@ Commit and push `package.json` + `package-lock.json` immediately, and tell me so
 - NEVER commit `.env.local`, `node_modules`, `.next`, or `data/store.json`. Make sure they are in `.gitignore`.
 - If the app breaks after a pull, run `git log -5` to see what came in, and fix it or tell me. Do not revert my teammate's work.
 - After 4:30 on the clock (feature freeze), only fix bugs. Do not add features or refactor.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

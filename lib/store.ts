@@ -498,7 +498,12 @@ export async function recordAnswer(req: AnswerRequest): Promise<AnswerResponse> 
   const store = loadStore();
   const student = getStudent(req.student_id);
 
-  const question = SAMPLE_QUESTIONS.find((q) => q.id === req.question_id) || SAMPLE_QUESTIONS[0];
+  const questionBank = getQuestions();
+  const question =
+    questionBank.find((q) => q.id === req.question_id) ||
+    SAMPLE_QUESTIONS.find((q) => q.id === req.question_id) ||
+    questionBank[0] ||
+    SAMPLE_QUESTIONS[0];
   const selectedOption = question.options.find((o) => o.id === req.option_id) || question.options[0];
   const isCorrect = question.correct_option === req.option_id;
 

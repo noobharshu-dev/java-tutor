@@ -61,7 +61,7 @@ function computeTeacherClassData(): TeacherResponse {
     .slice(0, 3);
 
   return {
-    concepts: concepts.map((c) => c.name),
+    concepts: concepts.map((c) => c.id),
     students,
     top_misconceptions,
   };
