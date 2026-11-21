@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { MasteryGraph } from "@/components/mastery-graph";
 import { ReviewsDuePanel } from "@/components/reviews-due-panel";
-import { CoffeeIcon, BrainIcon, SparklesIcon, CompassIcon, ArrowRightIcon, RefreshCwIcon, AwardIcon } from "@/components/icons";
+import { CoffeeIcon, BrainIcon, SparklesIcon, CompassIcon, ArrowRightIcon, RefreshCwIcon, AwardIcon, UsersIcon } from "@/components/icons";
 import { Concept, MasteryResponse } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -106,6 +106,13 @@ export default function DashboardPage() {
             >
               <BrainIcon className="w-3.5 h-3.5 text-indigo-400" />
               <span>Diagnostic</span>
+            </Link>
+            <Link
+              href="/teacher"
+              className="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors flex items-center gap-1.5"
+            >
+              <UsersIcon className="w-3.5 h-3.5 text-amber-400" />
+              <span>Teacher</span>
             </Link>
             <Link
               href="/"

@@ -133,6 +133,13 @@ export function Navbar({
                 <SparklesIcon className="w-3.5 h-3.5" />
                 <span>/practice</span>
               </Link>
+              <Link
+                href="/teacher"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:text-white bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 transition-colors flex items-center gap-1.5"
+              >
+                <UsersIcon className="w-3.5 h-3.5" />
+                <span>/teacher</span>
+              </Link>
             </div>
           </div>
 
