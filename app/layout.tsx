@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Plumb · Know where you stand",
+  title: "JavaTutor — Intelligent Java Learning & Misconception Diagnosis",
   description:
-    "An adaptive exam-prep tutor with a learner model. The student's knowledge is a topographic map where elevation reflects mastery.",
+    "Adaptive Java tutoring system detecting subtle misconceptions and tracking concept mastery with real-time feedback.",
 };
 
 export default function RootLayout({
@@ -15,11 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
-        <Script
-          src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"
-          strategy="beforeInteractive"
-        />
+      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
         {children}
       </body>
     </html>

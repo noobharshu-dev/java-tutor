@@ -1,213 +1,75 @@
 "use client";
 
 import React, { useState } from "react";
-import { PlumbHeader } from "@/components/plumb-header";
+import Link from "next/link";
+import { QuestionRunner } from "@/components/question-runner";
+import { CoffeeIcon, BrainIcon, ArrowRightIcon } from "@/components/icons";
 
 export default function DiagnosticPage() {
-  const [selectedOpt, setSelectedOpt] = useState<string>("B");
-  const [reasoning, setReasoning] = useState<string>("Reciprocal summation indicates total resistance decreases in parallel.");
-  const [submitted, setSubmitted] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-  const options = [
-    { key: "A", val: "10 Ω", text: "Direct addition: 4 + 6 = 10" },
-    { key: "B", val: "2.4 Ω", text: "Reciprocal sum: 1/R = 1/4 + 1/6" },
-    { key: "C", val: "5 Ω", text: "Arithmetic average: (4 + 6) / 2" },
-    { key: "D", val: "0.42 Ω", text: "Inversion omission: 5 / 12" },
-  ];
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const studentId = typeof window !== "undefined" ? localStorage.getItem("student_id") || "student-1" : "student-1";
-      await fetch("/api/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          student_id: studentId,
-          question_id: "diag-parallel-1",
-          option_id: selectedOpt,
-          reasoning,
-        }),
-      });
-    } catch {
-      // Offline fallback
-    } finally {
-      setIsSubmitting(false);
-      setSubmitted(true);
+  const [studentId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("student_id") || "student-1";
     }
-  };
+    return "student-1";
+  });
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <PlumbHeader />
-
-      <main className="plumb-main flex-1">
-        <section aria-label="Diagnostic mode">
-          <div className="head" style={{ marginBottom: 28 }}>
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 pb-16">
+      {/* Top Header */}
+      <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950/85 backdrop-blur-md">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+              <CoffeeIcon className="w-4 h-4" />
+            </div>
             <div>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "4px 12px",
-                  borderRadius: 999,
-                  background: "var(--paper-2)",
-                  border: "1px solid var(--rule)",
-                  fontSize: 13,
-                  color: "var(--pine)",
-                  fontWeight: 600,
-                  marginBottom: 12,
-                }}
-              >
-                <span>Diagnostic Assessment · Cognitive Model</span>
-              </div>
-              <h1>Diagnostic Calibration</h1>
-              <p>
-                Each distractor is mapped to a documented cognitive misconception. Your written reasoning exposes whether an answer is a lucky guess or a sound mental model.
-              </p>
+              <span className="font-bold text-white text-base tracking-tight">
+                JavaTutor
+              </span>
+              <span className="ml-2 text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Diagnostic
+              </span>
             </div>
-            <div className="elev">
-              <div>
-                <b className="num">Probe 1</b>
-                <span>of 5 scheduled</span>
-              </div>
-            </div>
+          </Link>
+
+          <nav className="flex items-center gap-3 text-xs">
+            <Link
+              href="/practice"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-slate-800 transition-colors"
+            >
+              <span>Practice Mode</span>
+              <ArrowRightIcon className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+            >
+              Dashboard
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
+        {/* Banner */}
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900/40 to-slate-950 border border-indigo-500/20 shadow-lg flex items-start gap-4">
+          <div className="p-3 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex-shrink-0">
+            <BrainIcon className="w-7 h-7" />
           </div>
-
-          <div className="slip" style={{ maxWidth: 1080 }}>
-            <div>
-              <div className="slip-card">
-                <div className="small muted" style={{ marginBottom: 14 }}>
-                  Electricity &bull; Equivalent Resistance &bull; Probe #01
-                </div>
-
-                <p className="prompt" style={{ fontSize: 24, maxWidth: "100%" }}>
-                  Two resistors of 4 &Omega; and 6 &Omega; are joined in parallel across an ideal 12 V potential difference. What is the equivalent resistance of the network?
-                </p>
-
-                <div className="opts" role="radiogroup" aria-label="Options" style={{ gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  {options.map((opt) => {
-                    const isChecked = selectedOpt === opt.key;
-                    return (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        className="opt"
-                        role="radio"
-                        aria-checked={isChecked}
-                        onClick={() => setSelectedOpt(opt.key)}
-                        style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span className="k">{opt.key}</span>
-                          <strong style={{ fontSize: 16 }}>{opt.val}</strong>
-                        </div>
-                        <span className="small muted">{opt.text}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <form onSubmit={handleSubmit} style={{ marginTop: 28, borderTop: "1px dashed var(--rule)", paddingTop: 20 }}>
-                  <div className="reason-head" style={{ margin: "0 0 10px" }}>
-                    <h3>Why did you pick this? (one line)</h3>
-                    <span className="small muted">Plumb checks for underlying misconceptions</span>
-                  </div>
-
-                  <input
-                    type="text"
-                    value={reasoning}
-                    onChange={(e) => setReasoning(e.target.value)}
-                    placeholder="e.g. Current splits and reciprocal sum gives 2.4 ohms..."
-                    style={{
-                      width: "100%",
-                      padding: "14px 16px",
-                      background: "var(--paper)",
-                      border: "1px solid var(--rule)",
-                      borderRadius: 3,
-                      fontFamily: "var(--serif)",
-                      fontSize: 17,
-                      color: "var(--ink)",
-                      outline: "none",
-                    }}
-                  />
-
-                  <button
-                    type="submit"
-                    className="submit"
-                    disabled={isSubmitting}
-                    style={{ marginTop: 18 }}
-                  >
-                    {isSubmitting ? "Diagnosing..." : "Submit for cognitive diagnosis"}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* Diagnostic Result */}
-            <div>
-              {submitted ? (
-                <div className="read">
-                  <div className="lede">Diagnostic Telemetry</div>
-                  <h2>Evaluation complete</h2>
-                  <p className="verdict" style={{ fontSize: 20 }}>
-                    Selected choice <strong>2.4 &Omega;</strong> matches correct reciprocal inversion.
-                  </p>
-
-                  <div className="note" style={{ borderLeft: "3px solid var(--pine)", background: "var(--paper-2)", marginBottom: 18 }}>
-                    <b style={{ color: "var(--pine)" }}>Sound Physical Principle Verified</b>
-                    <p>
-                      Branch reciprocity formula <code>1/R = 1/R1 + 1/R2</code> confirmed. Equivalent resistance correctly recognized as strictly bounded below the smallest branch resistor.
-                    </p>
-                  </div>
-
-                  <div className="finding">
-                    <div className="mark" style={{ background: "var(--pine)" }}>&check;</div>
-                    <div>
-                      <h3>Cognitive Misconception Averted</h3>
-                      <p>Did not confuse parallel branch addition with series accumulation.</p>
-                    </div>
-                  </div>
-
-                  <div className="finding">
-                    <div className="mark" style={{ background: "var(--rule)", color: "var(--ink)" }}>&rarr;</div>
-                    <div>
-                      <h3>Calibrating next probe</h3>
-                      <p>Advancing to non-identical three-branch parallel loops with internal cell resistance.</p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="cta"
-                    onClick={() => {
-                      setSubmitted(false);
-                      setSelectedOpt("B");
-                    }}
-                    style={{ marginTop: 22 }}
-                  >
-                    Next diagnostic question &rarr;
-                  </button>
-                </div>
-              ) : (
-                <aside className="card">
-                  <div className="kicker">Diagnostic Calibration Guide</div>
-                  <h2 style={{ fontStyle: "italic", fontSize: 22 }}>How Plumb evaluates</h2>
-                  <p className="small muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-                    Unlike standard multiple-choice tests, Plumb maps distractor selections directly to known cognitive pitfalls in the Class 10 Physics ontology.
-                  </p>
-                  <div className="note" style={{ marginTop: 16 }}>
-                    <b>Targeted Concept: Parallel Circuits</b>
-                    <p className="small">Current mastery: 22% (Valley). 19 students in your cohort share this gap.</p>
-                  </div>
-                </aside>
-              )}
-            </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              Cognitive Diagnostic Mode
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+              Answer the questions below to probe your underlying JVM execution model. Each distractor is mapped
+              to real conceptual pitfalls. Providing your one-line reasoning helps identify subtle misconceptions.
+            </p>
           </div>
-        </section>
+        </div>
+
+        {/* Runner */}
+        <QuestionRunner mode="diagnostic" studentId={studentId} />
       </main>
     </div>
   );
