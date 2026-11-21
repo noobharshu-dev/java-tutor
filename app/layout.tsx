@@ -4,17 +4,17 @@ import "./globals.css";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-fraunces",
 });
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-jakarta",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +33,7 @@ export default function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#F6F3EC] text-[#1C1917] font-sans antialiased selection:bg-[#D94F2B]/15 selection:text-[#1C1917]">
+      <body className="min-h-full flex flex-col font-sans bg-[#F6F3EC] text-[#1C1917] antialiased selection:bg-[#D94F2B]/15 selection:text-[#1C1917]">
         {children}
       </body>
     </html>
