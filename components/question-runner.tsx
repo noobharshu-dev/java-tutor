@@ -5,15 +5,11 @@ import { Question, AnswerResponse, AnswerRequest } from "@/lib/types";
 import { ShikiCode } from "./shiki-code";
 import { QuestionSkeleton, ErrorStateCard } from "./loading-skeleton";
 import {
-  BrainIcon,
   CheckCircleIcon,
   XCircleIcon,
-  AlertTriangleIcon,
   ArrowRightIcon,
   RefreshCwIcon,
   SparklesIcon,
-  CheckIcon,
-  AwardIcon,
 } from "./icons";
 import Link from "next/link";
 
@@ -95,7 +91,7 @@ export function QuestionRunner({
   }, [initialQuestion, conceptId, retryCount]);
 
   const handleOptionSelect = (optionId: string) => {
-    if (feedback) return; // Prevent changing after submit
+    if (feedback) return;
     setSelectedOptionId(optionId);
     setErrorMsg("");
   };
@@ -157,7 +153,6 @@ export function QuestionRunner({
         onCurrentConceptChange(feedback.next_question.concept_id);
       }
     }
-    // Reset state for next question
     setSelectedOptionId("");
     setReasoning("");
     setFeedback(null);
@@ -184,7 +179,7 @@ export function QuestionRunner({
         <div className="mt-4 text-center">
           <Link
             href="/"
-            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-4"
+            className="text-xs text-[#57534E] hover:text-[#1C1917] font-medium underline underline-offset-4"
           >
             &larr; Return to Home
           </Link>
@@ -193,87 +188,75 @@ export function QuestionRunner({
     );
   }
 
-  const difficultyMeta: Record<number, { label: string; badge: string }> = {
-    1: { label: "Level 1: Fundamentals", badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" },
-    2: { label: "Level 2: Intermediate", badge: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" },
-    3: { label: "Level 3: Deep Dive", badge: "bg-rose-500/20 text-rose-300 border-rose-500/30" },
-  };
-
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6">
-      {/* Session Progress Header */}
-      <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-800/80">
-        <div className="flex items-center gap-3">
-          <span className="font-semibold uppercase tracking-wider text-slate-300">
-            {mode === "diagnostic" ? "Cognitive Diagnostic" : "Targeted Mastery Practice"}
+    <div className="w-full mx-auto flex flex-col gap-5">
+      {/* Session Progress Meta */}
+      <div className="flex items-center justify-between text-xs text-[#78716C] pb-2 border-b border-[#E3DDD1]">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-[#57534E]">
+            {mode === "diagnostic" ? "Diagnostic Session" : "Targeted Drill"}
           </span>
-          <span className="text-slate-600">&bull;</span>
-          <span className="font-mono">Answered: {questionsAnswered}</span>
+          <span>·</span>
+          <span className="font-mono">Challenge #{questionsAnswered + 1}</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {streak > 1 && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold font-mono">
-              <SparklesIcon className="w-3 h-3 text-amber-400" />
-              {streak} Streak!
-            </span>
-          )}
-          <span className="font-mono text-slate-500">Learner: {studentId}</span>
-        </div>
+        {streak > 1 && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FEF3D6] text-[#9A5010] border border-[#F0D18A] font-mono text-[11px] font-semibold">
+            <SparklesIcon className="w-3 h-3 text-[#B45309]" />
+            {streak} In a Row
+          </span>
+        )}
       </div>
 
       {/* Main Question Card */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/90 shadow-2xl p-6 sm:p-8 backdrop-blur-md">
-        {/* Concept & Difficulty Meta */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-            <BrainIcon className="w-4 h-4" />
-            <span>Concept: {question.concept_id}</span>
+      <div className="studio-card rounded-2xl overflow-hidden">
+        {/* Clean Header Strip */}
+        <div className="bg-[#F2EDE3] border-b border-[#E3DDD1] px-6 py-3 flex items-center justify-between">
+          <span className="font-mono text-xs font-medium uppercase tracking-wide text-[#57534E]">
+            {question.concept_id}
           </span>
-
-          <span
-            className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-              difficultyMeta[question.difficulty]?.badge || "bg-slate-800 text-slate-300 border-slate-700"
-            }`}
-          >
-            {difficultyMeta[question.difficulty]?.label || `Difficulty: Level ${question.difficulty}`}
+          <span className="bg-[#FFFDF9] border border-[#DDD6C7] text-[#57534E] font-mono text-xs px-2.5 py-0.5 rounded-full">
+            Level {question.difficulty}
           </span>
         </div>
 
-        {/* Prompt */}
-        <div className="mt-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">
+        {/* Card Body */}
+        <div className="p-6 space-y-6">
+          {/* Prompt */}
+          <h2 className="font-sans text-lg font-semibold text-[#1C1917] leading-snug">
             {question.prompt}
           </h2>
 
-          {/* Java Code in Shiki syntax-highlighted block */}
+          {/* Java Code snippet */}
           {question.code && (
-            <div className="mt-4">
-              <ShikiCode code={question.code} title={`Java Code — ${question.concept_id}`} />
-            </div>
+            <ShikiCode code={question.code} title="Snippet.java" />
           )}
-        </div>
 
-        {/* Big Clickable Option Cards */}
-        <div className="mt-6 flex flex-col gap-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-            Choose an option:
-          </label>
+          {/* Answer Options */}
+          <div className="space-y-2.5">
+            <span className="text-xs font-semibold text-[#57534E] uppercase tracking-wider block mb-1">
+              Select an option:
+            </span>
 
-          <div className="grid grid-cols-1 gap-3.5">
             {question.options.map((opt, idx) => {
               const isSelected = selectedOptionId === opt.id;
               const isAnswered = feedback !== null;
               const isCorrectOption = feedback && question.correct_option === opt.id;
               const isWrongChoice = feedback && isSelected && !feedback.correct;
 
-              let cardStyles = "border-slate-800 bg-slate-950/60 text-slate-200 hover:border-slate-700 hover:bg-slate-800/40";
+              let cardStyles =
+                "bg-[#FFFDF9] border-[#DDD6C7] hover:border-[#A8A29E] hover:bg-[#FAF7F0] text-[#1C1917]";
+              let badgeStyles = "bg-[#EAE4D8] text-[#57534E]";
+
               if (isSelected && !isAnswered) {
-                cardStyles = "border-indigo-500 bg-indigo-950/40 text-white shadow-lg shadow-indigo-950/60 ring-2 ring-indigo-500";
+                cardStyles = "bg-[#FCECE8]/45 border-[#D94F2B] ring-1 ring-[#D94F2B] text-[#1C1917]";
+                badgeStyles = "bg-[#D94F2B] text-[#FFFDF9]";
               } else if (isCorrectOption) {
-                cardStyles = "border-emerald-500 bg-emerald-950/40 text-white ring-2 ring-emerald-500";
+                cardStyles = "bg-[#E6F4F1] border-[#0F766E] text-[#1C1917]";
+                badgeStyles = "bg-[#0F766E] text-[#FFFDF9]";
               } else if (isWrongChoice) {
-                cardStyles = "border-rose-500 bg-rose-950/40 text-white ring-2 ring-rose-500";
+                cardStyles = "bg-[#FCECE8] border-[#C23B22] text-[#1C1917]";
+                badgeStyles = "bg-[#C23B22] text-[#FFFDF9]";
               }
 
               return (
@@ -282,207 +265,150 @@ export function QuestionRunner({
                   type="button"
                   disabled={isAnswered || isSubmitting}
                   onClick={() => handleOptionSelect(opt.id)}
-                  className={`group relative flex items-start gap-4 p-5 rounded-2xl border text-left transition-all min-h-[58px] ${cardStyles} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400`}
+                  className={`w-full text-left flex items-center gap-3.5 px-4 py-3.5 rounded-xl border transition-all cursor-pointer ${cardStyles}`}
                 >
-                  {/* Option letter badge */}
                   <span
-                    className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-xl font-mono text-xs font-bold transition-colors ${
-                      isSelected && !isAnswered
-                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/40"
-                        : isCorrectOption
-                        ? "bg-emerald-500 text-slate-950"
-                        : isWrongChoice
-                        ? "bg-rose-500 text-white"
-                        : "bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-slate-100"
-                    }`}
+                    className={`w-7 h-7 rounded-lg font-mono text-xs font-semibold flex items-center justify-center shrink-0 ${badgeStyles}`}
                   >
                     {optionLetters[idx] || idx + 1}
                   </span>
-
-                  {/* Option Text */}
-                  <div className="flex-1 text-sm sm:text-base leading-relaxed pt-0.5">
+                  <span className="flex-1 text-sm leading-relaxed font-sans">
                     {opt.text}
-                  </div>
-
-                  {/* Status Icons */}
-                  {isSelected && !isAnswered && (
-                    <span className="flex-shrink-0 text-indigo-400 mt-1">
-                      <CheckIcon className="w-5 h-5" />
-                    </span>
-                  )}
+                  </span>
                   {isCorrectOption && (
-                    <span className="flex-shrink-0 text-emerald-400 mt-1">
-                      <CheckCircleIcon className="w-6 h-6" />
-                    </span>
+                    <CheckCircleIcon className="w-5 h-5 text-[#0F766E] shrink-0" />
                   )}
                   {isWrongChoice && (
-                    <span className="flex-shrink-0 text-rose-400 mt-1">
-                      <XCircleIcon className="w-6 h-6" />
-                    </span>
+                    <XCircleIcon className="w-5 h-5 text-[#C23B22] shrink-0" />
                   )}
                 </button>
               );
             })}
           </div>
-        </div>
 
-        {/* Revealed after choosing an option (Before Submission) */}
-        {selectedOptionId && !feedback && (
-          <form onSubmit={handleSubmit} className="mt-6 pt-6 border-t border-slate-800/80 animate-fadeIn">
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="one-line-reasoning"
-                className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5"
-              >
-                <SparklesIcon className="w-4 h-4 text-indigo-400" />
-                Why did you pick this? (one line)
-              </label>
-              <input
-                id="one-line-reasoning"
-                type="text"
-                value={reasoning}
-                onChange={(e) => setReasoning(e.target.value)}
-                placeholder="Why did you pick this? (one line)"
-                className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950/90 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-h-[44px]"
-              />
-            </div>
-
-            {errorMsg && (
-              <p className="mt-2 text-xs font-medium text-rose-400 flex items-center gap-1.5">
-                <span>⚠️</span>
-                {errorMsg}
-              </p>
-            )}
-
-            {/* Submit Button */}
-            <div className="mt-5 flex justify-end">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-500 shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCwIcon className="w-4 h-4 animate-spin" />
-                    <span>Evaluating with /api/answer...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Submit</span>
-                    <ArrowRightIcon className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* FEEDBACK PANEL (Shown after POST to /api/answer) */}
-        {feedback && (
-          <div className="mt-8 pt-6 border-t border-slate-800 flex flex-col gap-5 animate-fadeIn">
-            {/* Correct / Wrong Main Status */}
-            <div
-              className={`p-5 rounded-2xl border flex items-center gap-4 ${
-                feedback.correct
-                  ? "border-emerald-500/40 bg-emerald-950/30 text-emerald-300"
-                  : "border-rose-500/40 bg-rose-950/30 text-rose-300"
-              }`}
-            >
-              <div
-                className={`p-2.5 rounded-xl ${
-                  feedback.correct ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
-                }`}
-              >
-                {feedback.correct ? (
-                  <CheckCircleIcon className="w-8 h-8" />
-                ) : (
-                  <XCircleIcon className="w-8 h-8" />
-                )}
-              </div>
-
-              <div className="flex-1">
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  {feedback.correct ? "Evaluation Result: Correct" : "Evaluation Result: Incorrect"}
-                </span>
-                <h3 className="text-lg sm:text-xl font-bold text-white mt-0.5">
-                  {feedback.correct
-                    ? "Great job! Your Java mental model is accurate."
-                    : "Not quite — review the misconception breakdown below."}
-                </h3>
-              </div>
-            </div>
-
-            {/* If a misconception is detected: HIGHLIGHTED CARD with its name and explanation */}
-            {feedback.misconception && (
-              <div className="rounded-2xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-950/40 via-amber-950/20 to-slate-900/60 p-6 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500 text-slate-950 font-bold font-mono text-[10px] uppercase rounded-bl-xl tracking-wider">
-                  Misconception Identified
+          {/* Reasoning Input Box (Signature Feature) */}
+          {selectedOptionId && !feedback && (
+            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+              <div className="bg-[#F6F3EC] border border-[#DDD6C7] rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="reasoning-input"
+                    className="text-xs font-semibold text-[#1C1917]"
+                  >
+                    Why did you choose this answer?
+                  </label>
+                  <span className="font-mono text-[11px] text-[#78716C]">
+                    1-line reasoning
+                  </span>
                 </div>
+                <textarea
+                  id="reasoning-input"
+                  rows={2}
+                  value={reasoning}
+                  onChange={(e) => setReasoning(e.target.value)}
+                  placeholder="e.g. Because both strings contain the same characters in heap memory..."
+                  className="w-full bg-[#FFFDF9] border border-[#DDD6C7] focus:border-[#D94F2B] focus:outline-none rounded-lg px-3.5 py-2.5 text-sm text-[#1C1917] placeholder:text-[#A8A29E] resize-none"
+                />
+              </div>
 
-                <div className="flex items-start gap-3.5 mb-3">
-                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex-shrink-0">
-                    <AlertTriangleIcon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-mono font-bold text-amber-400">
-                      [{feedback.misconception.id}]
+              {errorMsg && (
+                <p className="text-xs font-medium text-[#C23B22] flex items-center gap-1.5">
+                  <span>⚠️</span>
+                  {errorMsg}
+                </p>
+              )}
+
+              {/* Submit CTA */}
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-[#D94F2B] hover:bg-[#BE3E1D] text-[#FFFDF9] font-medium rounded-xl shadow-[0_2px_0_0_#9E3115] active:translate-y-[1px] transition-all px-6 py-2.5 text-sm flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCwIcon className="w-4 h-4 animate-spin" />
+                      <span>Diagnosing reasoning...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Submit &amp; Diagnose</span>
+                      <ArrowRightIcon className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Diagnostic Verdict Reveal Card */}
+          {feedback && (
+            <div className="pt-2">
+              {!feedback.correct ? (
+                <div className="bg-[#FCECE8]/85 border border-[#F2C0B5] rounded-xl p-5 space-y-3 animate-fade-up">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#B53219]">
+                      {feedback.misconception?.id
+                        ? `${feedback.misconception.id} · Misconception Caught`
+                        : "Conceptual Misconception Caught"}
                     </span>
-                    <h4 className="text-lg font-bold text-white tracking-tight">
-                      {feedback.misconception.name}
-                    </h4>
+                    {typeof feedback.misconception?.confidence === "number" && (
+                      <span className="font-mono text-xs text-[#B53219]">
+                        {Math.round(feedback.misconception.confidence * 100)}% confidence
+                      </span>
+                    )}
                   </div>
-                </div>
 
-                {/* Explanation */}
-                <div className="mt-2 text-sm text-slate-200 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-amber-500/20">
-                  <p className="font-semibold text-amber-300 text-xs uppercase tracking-wide mb-1">
-                    Cognitive Diagnostic Explanation:
+                  <h3 className="font-display text-xl font-semibold text-[#1C1917]">
+                    {feedback.misconception?.name || "Flawed JVM execution assumption"}
+                  </h3>
+
+                  <p className="font-sans text-sm text-[#44403C] leading-relaxed">
+                    {feedback.misconception?.explanation ||
+                      "Your answer indicates a misunderstanding of how Java executes this operation. Review the mechanics and try the next targeted challenge."}
                   </p>
-                  <p>{feedback.misconception.explanation}</p>
-                </div>
 
-                {typeof feedback.misconception.confidence === "number" && (
-                  <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-                    <span>Diagnosis Confidence</span>
-                    <span className="font-mono font-bold text-amber-400">
-                      {Math.round(feedback.misconception.confidence * 100)}%
-                    </span>
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleNextQuestion}
+                      className="bg-[#1C1917] hover:bg-[#292524] text-[#FFFDF9] font-medium px-5 py-2.5 rounded-xl transition-all active:translate-y-[1px] text-sm flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>Next Adaptive Question</span>
+                      <ArrowRightIcon className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="bg-[#E6F4F1] border border-[#B2DDD5] rounded-xl p-5 space-y-3 animate-fade-up">
+                  <div className="font-mono text-[11px] font-semibold uppercase tracking-wide text-[#0F766E]">
+                    Mental Model Verified
+                  </div>
 
-            {/* Mastery Update Snippet */}
-            {feedback.mastery && question.concept_id && (
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <AwardIcon className="w-4 h-4 text-indigo-400" />
-                  Updated Mastery in {question.concept_id}:
-                </span>
-                <span className="font-mono font-bold text-white text-sm">
-                  {feedback.mastery[question.concept_id] !== undefined
-                    ? feedback.mastery[question.concept_id] <= 1
-                      ? Math.round(feedback.mastery[question.concept_id] * 100)
-                      : Math.round(feedback.mastery[question.concept_id])
-                    : 50}
-                  %
-                </span>
-              </div>
-            )}
+                  <h3 className="font-display text-xl font-semibold text-[#1C1917]">
+                    Correct Analysis
+                  </h3>
 
-            {/* Next Button using next_question from the response */}
-            <div className="flex justify-end pt-3">
-              <button
-                type="button"
-                onClick={handleNextQuestion}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-500 shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              >
-                <span>Next Question</span>
-                <ArrowRightIcon className="w-4 h-4" />
-              </button>
+                  <p className="font-sans text-sm text-[#44403C] leading-relaxed">
+                    Your reasoning accurately mirrors JVM runtime semantics. Concept mastery in{" "}
+                    <strong className="font-mono text-[#0F766E]">{question.concept_id}</strong> has updated.
+                  </p>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleNextQuestion}
+                      className="bg-[#1C1917] hover:bg-[#292524] text-[#FFFDF9] font-medium px-5 py-2.5 rounded-xl transition-all active:translate-y-[1px] text-sm flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>Next Question</span>
+                      <ArrowRightIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

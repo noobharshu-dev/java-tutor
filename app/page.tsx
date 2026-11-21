@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
+import TechText from "@/components/tech-text";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -55,10 +56,31 @@ export default function LandingPage() {
           <div className="lg:col-span-6 space-y-7">
             {/* 1. Headline */}
             <h1 className="font-display text-4xl sm:text-5xl lg:text-[52px] font-semibold tracking-tight text-[#1C1917] leading-[1.08]">
-              We don&apos;t track what you got wrong.
+              <span>We don&apos;t track what you got wrong.</span>
               <br />
-              We track what you{" "}
-              <span className="italic text-[#D94F2B]">misunderstand.</span>
+              <span>We track what you</span>
+              <span className="block h-[58px] sm:h-[72px] lg:h-[84px] w-full max-w-[480px] -ml-2 -mt-1 -mb-2">
+                <TechText
+                  text="misunderstand."
+                  as="span"
+                  fontStyle="italic"
+                  fontWeight={600}
+                  fontSize={52}
+                  color="#D94F2B"
+                  accentColor="#D94F2B"
+                  align="left"
+                  margin={8}
+                  reveal="letter"
+                  dashLength={4}
+                  dashGap={2}
+                  specks={15}
+                  intro="none"
+                  introDuration={2}
+                  clickKick
+                  draggable
+                  guides={false}
+                />
+              </span>
             </h1>
 
             {/* 2. Subtitle */}

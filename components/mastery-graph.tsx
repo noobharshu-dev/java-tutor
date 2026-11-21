@@ -106,7 +106,6 @@ export function MasteryGraph({
 
   // Build Edges
   const edges: Edge[] = useMemo(() => {
-    // If edgesList provided, use it; otherwise infer from prerequisites
     const list: [string, string][] =
       edgesList ||
       concepts.flatMap((c) => c.prerequisites.map((p) => [p, c.id] as [string, string]));
@@ -114,35 +113,32 @@ export function MasteryGraph({
     return list.map(([source, target], idx) => {
       const sourceMastery = mastery[source] ?? 0;
       const targetMastery = mastery[target] ?? 0;
-      const avgScore = ((sourceMastery <= 1 ? sourceMastery * 100 : sourceMastery) +
-        (targetMastery <= 1 ? targetMastery * 100 : targetMastery)) / 2;
-
-      // Dynamic edge color
-      const hue = Math.round((avgScore / 100) * 135);
-      const strokeColor = `hsl(${hue}, 70%, 45%)`;
+      const avgScore =
+        ((sourceMastery <= 1 ? sourceMastery * 100 : sourceMastery) +
+          (targetMastery <= 1 ? targetMastery * 100 : targetMastery)) /
+        2;
 
       return {
         id: `e-${source}-${target}-${idx}`,
         source,
         target,
-        animated: avgScore < 60, // Animate edges for concepts still in development!
+        animated: avgScore < 40,
         style: {
-          stroke: strokeColor,
-          strokeWidth: compact ? 1.5 : 2,
-          transition: "stroke 0.8s ease",
+          stroke: "#B5AEA0",
+          strokeWidth: compact ? 1.5 : 1.75,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: strokeColor,
-          width: compact ? 14 : 18,
-          height: compact ? 14 : 18,
+          color: "#B5AEA0",
+          width: compact ? 12 : 16,
+          height: compact ? 12 : 16,
         },
       };
     });
   }, [concepts, edgesList, mastery, compact]);
 
   return (
-    <div className={`w-full h-full relative rounded-2xl overflow-hidden ${compact ? "bg-slate-950" : "bg-slate-950/90"}`}>
+    <div className="w-full h-full relative rounded-2xl overflow-hidden bg-[#FAF7F0]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -155,17 +151,19 @@ export function MasteryGraph({
         panOnDrag={!compact}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#334155" gap={compact ? 18 : 24} size={1} />
-        {!compact && <Controls className="!bg-slate-900 !border-slate-800 !text-slate-200" />}
+        <Background color="#D5CEC0" gap={20} size={1.5} />
+        {!compact && (
+          <Controls className="!bg-[#FFFDF9] !border-[#DDD6C7] !text-[#57534E] !shadow-xs" />
+        )}
         {!compact && (
           <MiniMap
             nodeColor={(n) => {
               const score = mastery[n.id] ?? 0;
               const pct = score <= 1 ? score * 100 : score;
-              return pct >= 80 ? "#10b981" : pct >= 40 ? "#eab308" : "#ef4444";
+              return pct >= 80 ? "#0F766E" : pct >= 40 ? "#C87D16" : "#D94F2B";
             }}
-            className="!bg-slate-900/90 !border-slate-800 rounded-xl"
-            maskColor="rgba(15, 23, 42, 0.7)"
+            className="!bg-[#FFFDF9] !border-[#DDD6C7] rounded-xl shadow-xs"
+            maskColor="rgba(246, 243, 236, 0.65)"
           />
         )}
       </ReactFlow>
