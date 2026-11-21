@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const response: AnswerResponse = recordAnswer(body);
+    const response: AnswerResponse = await recordAnswer(body);
     return NextResponse.json(response);
   } catch (error) {
     return NextResponse.json(

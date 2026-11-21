@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import {
+import type {
   Concept,
   Misconception,
   Question,
@@ -11,6 +11,9 @@ import {
   ReviewItem,
   TeacherResponse,
 } from "./types";
+import { getInitialMastery, updateMastery, pickNextConcept } from "./learner";
+import { detectMisconception } from "./misconception";
+import { getQuestions, nextQuestion as selectNextQuestion } from "./questions";
 
 export interface SM2State {
   repetitions: number;
@@ -70,6 +73,48 @@ export function getConceptEdges(): [string, string][] {
 
 export const SAMPLE_QUESTIONS: Question[] = [
   {
+    id: "q-var-1",
+    concept_id: "variables-types",
+    difficulty: 1,
+    code: `int x = 10;\ndouble y = x;\nSystem.out.println(y);`,
+    prompt: "What does this code snippet print to standard output?",
+    options: [
+      { id: "opt-1", text: "10.0", misconception_id: null },
+      { id: "opt-2", text: "10", misconception_id: null },
+      { id: "opt-3", text: "Compilation error", misconception_id: null },
+      { id: "opt-4", text: "ClassCastException", misconception_id: null },
+    ],
+    correct_option: "opt-1",
+  },
+  {
+    id: "q-op-1",
+    concept_id: "operators",
+    difficulty: 1,
+    code: `int x = 5;\nint y = 2;\ndouble result = x / y;\nSystem.out.println(result);`,
+    prompt: "What is printed when this snippet executes?",
+    options: [
+      { id: "opt-1", text: "2.5", misconception_id: "M2" },
+      { id: "opt-2", text: "2.0", misconception_id: null },
+      { id: "opt-3", text: "2", misconception_id: null },
+      { id: "opt-4", text: "Compilation error", misconception_id: null },
+    ],
+    correct_option: "opt-2",
+  },
+  {
+    id: "q-strbasics-1",
+    concept_id: "strings",
+    difficulty: 1,
+    code: `String s = "Java";\ns.concat(" Tutor");\nSystem.out.println(s);`,
+    prompt: "What is printed to standard output?",
+    options: [
+      { id: "opt-1", text: "Java", misconception_id: null },
+      { id: "opt-2", text: "Java Tutor", misconception_id: null },
+      { id: "opt-3", text: "Tutor", misconception_id: null },
+      { id: "opt-4", text: "Compilation error", misconception_id: null },
+    ],
+    correct_option: "opt-1",
+  },
+  {
     id: "q-str-1",
     concept_id: "string-equality",
     difficulty: 1,
@@ -84,15 +129,43 @@ export const SAMPLE_QUESTIONS: Question[] = [
     correct_option: "opt-1",
   },
   {
-    id: "q-op-1",
-    concept_id: "operators",
+    id: "q-cond-1",
+    concept_id: "conditionals",
     difficulty: 1,
-    code: `int x = 5;\nint y = 2;\ndouble result = x / y;\nSystem.out.println(result);`,
-    prompt: "What is printed when this snippet executes?",
+    code: `int score = 75;\nif (score > 90) {\n    System.out.println("A");\n} else if (score > 70) {\n    System.out.println("B");\n} else {\n    System.out.println("C");\n}`,
+    prompt: "What grade is output by this conditional block?",
     options: [
-      { id: "opt-1", text: "2.5", misconception_id: "M2" },
-      { id: "opt-2", text: "2.0", misconception_id: null },
-      { id: "opt-3", text: "2", misconception_id: null },
+      { id: "opt-1", text: "B", misconception_id: null },
+      { id: "opt-2", text: "A", misconception_id: null },
+      { id: "opt-3", text: "C", misconception_id: null },
+      { id: "opt-4", text: "B and C", misconception_id: null },
+    ],
+    correct_option: "opt-1",
+  },
+  {
+    id: "q-loop-1",
+    concept_id: "loops",
+    difficulty: 1,
+    code: `int count = 0;\nfor (int i = 0; i <= 5; i++) {\n    count++;\n}\nSystem.out.println(count);`,
+    prompt: "What does the console print?",
+    options: [
+      { id: "opt-1", text: "5", misconception_id: "M5" },
+      { id: "opt-2", text: "6", misconception_id: null },
+      { id: "opt-3", text: "4", misconception_id: null },
+      { id: "opt-4", text: "Infinite loop", misconception_id: null },
+    ],
+    correct_option: "opt-2",
+  },
+  {
+    id: "q-arr-1",
+    concept_id: "arrays",
+    difficulty: 1,
+    code: `int[] arr = new int[5];\nSystem.out.println(arr[arr.length]);`,
+    prompt: "What happens when this snippet runs?",
+    options: [
+      { id: "opt-1", text: "Prints 0 (the default value of the last slot)", misconception_id: "M4" },
+      { id: "opt-2", text: "Throws ArrayIndexOutOfBoundsException", misconception_id: null },
+      { id: "opt-3", text: "Prints null", misconception_id: null },
       { id: "opt-4", text: "Compilation error", misconception_id: null },
     ],
     correct_option: "opt-2",
@@ -112,32 +185,18 @@ export const SAMPLE_QUESTIONS: Question[] = [
     correct_option: "opt-2",
   },
   {
-    id: "q-arr-1",
-    concept_id: "arrays",
-    difficulty: 1,
-    code: `int[] arr = new int[5];\nSystem.out.println(arr[arr.length]);`,
-    prompt: "What happens when this snippet runs?",
+    id: "q-cls-1",
+    concept_id: "classes-objects",
+    difficulty: 2,
+    code: `class Point {\n    int x;\n    Point(int x) { this.x = x; }\n}\nPoint p = new Point(5);\nSystem.out.println(p.x);`,
+    prompt: "What is the value of p.x printed to the console?",
     options: [
-      { id: "opt-1", text: "Prints 0 (the default value of the last slot)", misconception_id: "M4" },
-      { id: "opt-2", text: "Throws ArrayIndexOutOfBoundsException", misconception_id: null },
-      { id: "opt-3", text: "Prints null", misconception_id: null },
+      { id: "opt-1", text: "5", misconception_id: null },
+      { id: "opt-2", text: "0", misconception_id: null },
+      { id: "opt-3", text: "null", misconception_id: null },
       { id: "opt-4", text: "Compilation error", misconception_id: null },
     ],
-    correct_option: "opt-2",
-  },
-  {
-    id: "q-loop-1",
-    concept_id: "loops",
-    difficulty: 1,
-    code: `int count = 0;\nfor (int i = 0; i <= 5; i++) {\n    count++;\n}\nSystem.out.println(count);`,
-    prompt: "What does the console print?",
-    options: [
-      { id: "opt-1", text: "5", misconception_id: "M5" },
-      { id: "opt-2", text: "6", misconception_id: null },
-      { id: "opt-3", text: "4", misconception_id: null },
-      { id: "opt-4", text: "Infinite loop", misconception_id: null },
-    ],
-    correct_option: "opt-2",
+    correct_option: "opt-1",
   },
   {
     id: "q-ref-1",
@@ -184,12 +243,7 @@ export const SAMPLE_QUESTIONS: Question[] = [
 ];
 
 function createDefaultMastery(): Record<string, number> {
-  const concepts = getConcepts();
-  const mastery: Record<string, number> = {};
-  for (const c of concepts) {
-    mastery[c.id] = 0.5;
-  }
-  return mastery;
+  return getInitialMastery();
 }
 
 function createInitialStore(): StoreData {
@@ -282,7 +336,7 @@ const globalForStore = globalThis as unknown as {
   __javaTutorStore?: StoreData;
 };
 
-function loadStore(): StoreData {
+export function loadStore(): StoreData {
   if (globalForStore.__javaTutorStore) {
     return globalForStore.__javaTutorStore;
   }
@@ -304,7 +358,7 @@ function loadStore(): StoreData {
   return defaultData;
 }
 
-function saveStore(data: StoreData): void {
+export function saveStore(data: StoreData): void {
   globalForStore.__javaTutorStore = data;
   try {
     const dir = path.dirname(STORE_PATH);
@@ -409,21 +463,33 @@ export function getTeacherOverview(): TeacherResponse {
 }
 
 export function getQuestion(id?: string, conceptId?: string): Question {
+  const bank = getQuestions();
   if (id) {
-    const found = SAMPLE_QUESTIONS.find((q) => q.id === id);
+    const found = bank.find((q) => q.id === id);
     if (found) return found;
   }
   if (conceptId) {
-    const found = SAMPLE_QUESTIONS.find((q) => q.concept_id === conceptId);
+    const found = bank.find((q) => q.concept_id === conceptId);
     if (found) return found;
   }
-  return SAMPLE_QUESTIONS[0];
+  return bank[0];
+}
+
+export function getQuestionForConcept(conceptId: string, excludeQuestionId?: string): Question {
+  const bank = getQuestions();
+  const matching = bank.filter((q) => q.concept_id === conceptId);
+  if (matching.length === 0) {
+    return bank[0];
+  }
+  const different = matching.find((q) => q.id !== excludeQuestionId);
+  return different || matching[0];
 }
 
 export function getNextQuestion(currentQuestionId?: string): Question {
-  const idx = SAMPLE_QUESTIONS.findIndex((q) => q.id === currentQuestionId);
-  const nextIdx = idx >= 0 && idx < SAMPLE_QUESTIONS.length - 1 ? idx + 1 : 0;
-  return SAMPLE_QUESTIONS[nextIdx];
+  const bank = getQuestions();
+  const idx = bank.findIndex((q) => q.id === currentQuestionId);
+  const nextIdx = idx >= 0 && idx < bank.length - 1 ? idx + 1 : 0;
+  return bank[nextIdx];
 }
 
 // SM-2 algorithm update logic
@@ -468,32 +534,21 @@ function updateSM2(
   };
 }
 
-export function recordAnswer(req: AnswerRequest): AnswerResponse {
+export async function recordAnswer(req: AnswerRequest): Promise<AnswerResponse> {
   const store = loadStore();
   const student = getStudent(req.student_id);
 
   const question = SAMPLE_QUESTIONS.find((q) => q.id === req.question_id) || SAMPLE_QUESTIONS[0];
-  const selectedOption = question.options.find((o) => o.id === req.option_id);
+  const selectedOption = question.options.find((o) => o.id === req.option_id) || question.options[0];
   const isCorrect = question.correct_option === req.option_id;
 
   let detectedMisconception: DetectedMisconception | null = null;
-  if (!isCorrect && selectedOption?.misconception_id) {
-    const m = getMisconceptions().find((misc) => misc.id === selectedOption.misconception_id);
-    if (m) {
-      detectedMisconception = {
-        id: m.id,
-        name: m.name,
-        explanation: `${m.wrong_belief}. Clarification: ${m.correct_idea}`,
-        confidence: 0.92,
-      };
-    }
+  if (!isCorrect) {
+    detectedMisconception = await detectMisconception(question, selectedOption, req.reasoning);
   }
 
-  // Update mastery
-  const currentMastery = student.mastery[question.concept_id] ?? 0.5;
-  const delta = isCorrect ? 0.15 : -0.15;
-  const newMastery = Math.max(0.0, Math.min(1.0, Number((currentMastery + delta).toFixed(2))));
-  student.mastery[question.concept_id] = newMastery;
+  // Update mastery using learner model (mastery += 0.3 * (target - mastery); reduce prereqs if wrong)
+  student.mastery = updateMastery(student.mastery, question.concept_id, isCorrect);
 
   // Update SM-2 schedule
   student.sm2[question.concept_id] = updateSM2(student.sm2[question.concept_id], isCorrect);
@@ -511,7 +566,8 @@ export function recordAnswer(req: AnswerRequest): AnswerResponse {
 
   saveStore(store);
 
-  const nextQuestion = getNextQuestion(question.id);
+  // Pick next question adaptively (concept from learner, difficulty from history, targeting misconceptions, non-repeating)
+  const nextQuestion = selectNextQuestion(student);
 
   return {
     correct: isCorrect,

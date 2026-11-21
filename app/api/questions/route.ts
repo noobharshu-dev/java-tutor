@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { SAMPLE_QUESTIONS } from "@/lib/store";
-import { Question } from "@/lib/types";
+import { getQuestions } from "@/lib/questions";
+import type { Question } from "@/lib/types";
 
 export async function GET() {
-  const questions: Question[] = SAMPLE_QUESTIONS;
+  const questions: Question[] = getQuestions();
   return NextResponse.json(questions);
 }

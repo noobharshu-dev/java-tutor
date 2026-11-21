@@ -1,0 +1,408 @@
+[
+  {
+    "id": "q-var-1",
+    "concept_id": "variables-types",
+    "difficulty": 1,
+    "code": "int x = 10;\ndouble y = x;\nSystem.out.println(y);",
+    "prompt": "What does this code snippet print to standard output?",
+    "options": [
+      { "id": "opt-1", "text": "10.0", "misconception_id": null },
+      { "id": "opt-2", "text": "10", "misconception_id": null },
+      { "id": "opt-3", "text": "Compilation error", "misconception_id": null },
+      { "id": "opt-4", "text": "ClassCastException", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-var-2",
+    "concept_id": "variables-types",
+    "difficulty": 2,
+    "code": "byte b = 127;\nb++;\nSystem.out.println(b);",
+    "prompt": "What happens when byte b overflows in Java?",
+    "options": [
+      { "id": "opt-1", "text": "-128", "misconception_id": null },
+      { "id": "opt-2", "text": "128", "misconception_id": null },
+      { "id": "opt-3", "text": "ArithmeticException", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-var-3",
+    "concept_id": "variables-types",
+    "difficulty": 3,
+    "code": "char c = 'A';\nint i = c + 1;\nSystem.out.println((char)i);",
+    "prompt": "What is the result of character arithmetic and explicit casting here?",
+    "options": [
+      { "id": "opt-1", "text": "B", "misconception_id": null },
+      { "id": "opt-2", "text": "66", "misconception_id": null },
+      { "id": "opt-3", "text": "A1", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-op-1",
+    "concept_id": "operators",
+    "difficulty": 1,
+    "code": "int x = 5;\nint y = 2;\ndouble result = x / y;\nSystem.out.println(result);",
+    "prompt": "What is printed when this snippet executes?",
+    "options": [
+      { "id": "opt-1", "text": "2.5", "misconception_id": "M2" },
+      { "id": "opt-2", "text": "2.0", "misconception_id": null },
+      { "id": "opt-3", "text": "2", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-op-2",
+    "concept_id": "operators",
+    "difficulty": 2,
+    "code": "double result = (double)(7 / 2);\nSystem.out.println(result);",
+    "prompt": "What is printed when casting the result of integer division?",
+    "options": [
+      { "id": "opt-1", "text": "3.5", "misconception_id": "M2" },
+      { "id": "opt-2", "text": "3.0", "misconception_id": null },
+      { "id": "opt-3", "text": "3", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-op-3",
+    "concept_id": "operators",
+    "difficulty": 3,
+    "code": "int a = 5;\nint b = a++ + ++a;\nSystem.out.println(b);",
+    "prompt": "What value is printed by this pre/post increment expression?",
+    "options": [
+      { "id": "opt-1", "text": "12", "misconception_id": null },
+      { "id": "opt-2", "text": "11", "misconception_id": null },
+      { "id": "opt-3", "text": "10", "misconception_id": null },
+      { "id": "opt-4", "text": "13", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-strbasics-1",
+    "concept_id": "strings",
+    "difficulty": 1,
+    "code": "String s = \"Java\";\ns.concat(\" Tutor\");\nSystem.out.println(s);",
+    "prompt": "What is printed to standard output?",
+    "options": [
+      { "id": "opt-1", "text": "Java", "misconception_id": null },
+      { "id": "opt-2", "text": "Java Tutor", "misconception_id": null },
+      { "id": "opt-3", "text": "Tutor", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-strbasics-2",
+    "concept_id": "strings",
+    "difficulty": 2,
+    "code": "String s = \"Hello\";\nSystem.out.println(s.substring(1, 3));",
+    "prompt": "What does s.substring(1, 3) return?",
+    "options": [
+      { "id": "opt-1", "text": "el", "misconception_id": null },
+      { "id": "opt-2", "text": "ell", "misconception_id": null },
+      { "id": "opt-3", "text": "Hel", "misconception_id": null },
+      { "id": "opt-4", "text": "he", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-str-1",
+    "concept_id": "string-equality",
+    "difficulty": 1,
+    "code": "String a = new String(\"Java\");\nString b = new String(\"Java\");\nSystem.out.println(a == b);\nSystem.out.println(a.equals(b));",
+    "prompt": "What does this code snippet print to standard output?",
+    "options": [
+      { "id": "opt-1", "text": "false then true", "misconception_id": null },
+      { "id": "opt-2", "text": "true then true", "misconception_id": "M1" },
+      { "id": "opt-3", "text": "true then false", "misconception_id": null },
+      { "id": "opt-4", "text": "false then false", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-str-2",
+    "concept_id": "string-equality",
+    "difficulty": 2,
+    "code": "String s1 = \"test\";\nString s2 = \"te\" + \"st\";\nString s3 = new String(\"test\");\nSystem.out.println((s1 == s2) + \" \" + (s1 == s3));",
+    "prompt": "What does this string comparison output due to string interning?",
+    "options": [
+      { "id": "opt-1", "text": "true false", "misconception_id": null },
+      { "id": "opt-2", "text": "true true", "misconception_id": "M1" },
+      { "id": "opt-3", "text": "false false", "misconception_id": null },
+      { "id": "opt-4", "text": "false true", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-str-3",
+    "concept_id": "string-equality",
+    "difficulty": 3,
+    "code": "String a = \"code\";\nString b = new String(\"code\").intern();\nSystem.out.println(a == b);",
+    "prompt": "What does comparing with an interned string evaluate to?",
+    "options": [
+      { "id": "opt-1", "text": "true", "misconception_id": null },
+      { "id": "opt-2", "text": "false", "misconception_id": null },
+      { "id": "opt-3", "text": "Compilation error", "misconception_id": null },
+      { "id": "opt-4", "text": "ClassCastException", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-cond-1",
+    "concept_id": "conditionals",
+    "difficulty": 1,
+    "code": "int score = 75;\nif (score > 90) {\n    System.out.println(\"A\");\n} else if (score > 70) {\n    System.out.println(\"B\");\n} else {\n    System.out.println(\"C\");\n}",
+    "prompt": "What grade is output by this conditional block?",
+    "options": [
+      { "id": "opt-1", "text": "B", "misconception_id": null },
+      { "id": "opt-2", "text": "A", "misconception_id": null },
+      { "id": "opt-3", "text": "C", "misconception_id": null },
+      { "id": "opt-4", "text": "B and C", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-cond-2",
+    "concept_id": "conditionals",
+    "difficulty": 2,
+    "code": "boolean flag = false;\nif (flag = true) {\n    System.out.println(\"Yes\");\n} else {\n    System.out.println(\"No\");\n}",
+    "prompt": "What is printed when assigning instead of comparing in an if statement?",
+    "options": [
+      { "id": "opt-1", "text": "Yes", "misconception_id": null },
+      { "id": "opt-2", "text": "No", "misconception_id": null },
+      { "id": "opt-3", "text": "Compilation error", "misconception_id": null },
+      { "id": "opt-4", "text": "Runtime Exception", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-loop-1",
+    "concept_id": "loops",
+    "difficulty": 1,
+    "code": "int count = 0;\nfor (int i = 0; i <= 5; i++) {\n    count++;\n}\nSystem.out.println(count);",
+    "prompt": "What does the console print?",
+    "options": [
+      { "id": "opt-1", "text": "5", "misconception_id": "M5" },
+      { "id": "opt-2", "text": "6", "misconception_id": null },
+      { "id": "opt-3", "text": "4", "misconception_id": null },
+      { "id": "opt-4", "text": "Infinite loop", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-loop-2",
+    "concept_id": "loops",
+    "difficulty": 2,
+    "code": "int n = 4;\nint steps = 0;\nfor (int i = 1; i <= n; i++) {\n    steps++;\n}\nSystem.out.println(steps);",
+    "prompt": "How many times does a 1-based loop with i <= n execute?",
+    "options": [
+      { "id": "opt-1", "text": "4", "misconception_id": null },
+      { "id": "opt-2", "text": "5", "misconception_id": "M5" },
+      { "id": "opt-3", "text": "3", "misconception_id": null },
+      { "id": "opt-4", "text": "0", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-loop-3",
+    "concept_id": "loops",
+    "difficulty": 3,
+    "code": "int total = 0;\nfor (int i = 0; i < 3; i++) {\n    for (int j = 0; j <= 2; j++) {\n        total++;\n    }\n}\nSystem.out.println(total);",
+    "prompt": "What is the total number of iterations in these nested loops?",
+    "options": [
+      { "id": "opt-1", "text": "9", "misconception_id": null },
+      { "id": "opt-2", "text": "6", "misconception_id": "M5" },
+      { "id": "opt-3", "text": "8", "misconception_id": null },
+      { "id": "opt-4", "text": "12", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-arr-1",
+    "concept_id": "arrays",
+    "difficulty": 1,
+    "code": "int[] arr = new int[5];\nSystem.out.println(arr[arr.length]);",
+    "prompt": "What happens when accessing arr[arr.length]?",
+    "options": [
+      { "id": "opt-1", "text": "Prints 0 (the default value of the last slot)", "misconception_id": "M4" },
+      { "id": "opt-2", "text": "Throws ArrayIndexOutOfBoundsException", "misconception_id": null },
+      { "id": "opt-3", "text": "Prints null", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-arr-2",
+    "concept_id": "arrays",
+    "difficulty": 2,
+    "code": "int[] numbers = { 10, 20, 30 };\nSystem.out.println(numbers[1]);",
+    "prompt": "Which element does index 1 refer to in a 0-indexed Java array?",
+    "options": [
+      { "id": "opt-1", "text": "10 (the first element)", "misconception_id": "M4" },
+      { "id": "opt-2", "text": "20 (the second element)", "misconception_id": null },
+      { "id": "opt-3", "text": "30", "misconception_id": null },
+      { "id": "opt-4", "text": "ArrayIndexOutOfBoundsException", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-arr-3",
+    "concept_id": "arrays",
+    "difficulty": 3,
+    "code": "int[][] grid = new int[3][4];\nSystem.out.println(grid.length + \" \" + grid[0].length);",
+    "prompt": "What does a 2D array report for grid.length and grid[0].length?",
+    "options": [
+      { "id": "opt-1", "text": "3 4", "misconception_id": null },
+      { "id": "opt-2", "text": "4 3", "misconception_id": null },
+      { "id": "opt-3", "text": "12 12", "misconception_id": null },
+      { "id": "opt-4", "text": "3 12", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-methods-1",
+    "concept_id": "methods",
+    "difficulty": 1,
+    "code": "public static void modify(int x) {\n    x = 100;\n}\npublic static void main(String[] args) {\n    int a = 10;\n    modify(a);\n    System.out.println(a);\n}",
+    "prompt": "What does this code print after passing a primitive int to a method?",
+    "options": [
+      { "id": "opt-1", "text": "10", "misconception_id": null },
+      { "id": "opt-2", "text": "100", "misconception_id": null },
+      { "id": "opt-3", "text": "0", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-methods-2",
+    "concept_id": "methods",
+    "difficulty": 2,
+    "code": "public static void modify(int[] list) {\n    list = new int[] { 99, 100 };\n}\n\npublic static void main(String[] args) {\n    int[] nums = { 1, 2 };\n    modify(nums);\n    System.out.println(nums[0]);\n}",
+    "prompt": "What value is printed by main after reassigning the parameter reference?",
+    "options": [
+      { "id": "opt-1", "text": "99 (reassignment modified caller's array)", "misconception_id": "M3" },
+      { "id": "opt-2", "text": "1 (Java copies the reference by value)", "misconception_id": null },
+      { "id": "opt-3", "text": "NullPointerException", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-cls-1",
+    "concept_id": "classes-objects",
+    "difficulty": 1,
+    "code": "class Point {\n    int x;\n    Point(int x) { this.x = x; }\n}\nPoint p = new Point(5);\nSystem.out.println(p.x);",
+    "prompt": "What is the value of p.x printed to the console?",
+    "options": [
+      { "id": "opt-1", "text": "5", "misconception_id": null },
+      { "id": "opt-2", "text": "0", "misconception_id": null },
+      { "id": "opt-3", "text": "null", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-cls-2",
+    "concept_id": "classes-objects",
+    "difficulty": 2,
+    "code": "class Box {\n    int size;\n}\nBox b1 = new Box();\nBox b2 = new Box();\nb1.size = 10;\nSystem.out.println(b2.size);",
+    "prompt": "What is the default value of instance variable b2.size?",
+    "options": [
+      { "id": "opt-1", "text": "0", "misconception_id": null },
+      { "id": "opt-2", "text": "10", "misconception_id": null },
+      { "id": "opt-3", "text": "null", "misconception_id": null },
+      { "id": "opt-4", "text": "Garbage value", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  },
+  {
+    "id": "q-ref-1",
+    "concept_id": "references",
+    "difficulty": 1,
+    "code": "int[] first = { 10, 20 };\nint[] second = first;\nsecond[0] = 50;\nSystem.out.println(first[0]);",
+    "prompt": "What value does first[0] contain after the assignment?",
+    "options": [
+      { "id": "opt-1", "text": "10 (second is an independent copy)", "misconception_id": "M6" },
+      { "id": "opt-2", "text": "50 (both refer to the same array)", "misconception_id": null },
+      { "id": "opt-3", "text": "0", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-ref-2",
+    "concept_id": "references",
+    "difficulty": 2,
+    "code": "class Node {\n    int val;\n    Node(int v) { this.val = v; }\n}\nNode a = new Node(1);\nNode b = a;\nb.val = 2;\nSystem.out.println(a.val);",
+    "prompt": "What does a.val print after modifying b.val?",
+    "options": [
+      { "id": "opt-1", "text": "1 (b was a deep copy)", "misconception_id": "M6" },
+      { "id": "opt-2", "text": "2 (both variables point to the same Node)", "misconception_id": null },
+      { "id": "opt-3", "text": "null", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-static-1",
+    "concept_id": "static-instance",
+    "difficulty": 1,
+    "code": "class Item {\n    static int tally = 0;\n    Item() { tally++; }\n}\nItem a = new Item();\nItem b = new Item();\nSystem.out.println(a.tally + \" \" + b.tally);",
+    "prompt": "What is printed to the terminal?",
+    "options": [
+      { "id": "opt-1", "text": "1 1 (each object has its own tally)", "misconception_id": "M7" },
+      { "id": "opt-2", "text": "2 2 (static fields are shared by the class)", "misconception_id": null },
+      { "id": "opt-3", "text": "1 2", "misconception_id": null },
+      { "id": "opt-4", "text": "0 0", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-static-2",
+    "concept_id": "static-instance",
+    "difficulty": 2,
+    "code": "class Config {\n    static int port = 8080;\n}\nConfig c = new Config();\nc.port = 9000;\nSystem.out.println(Config.port);",
+    "prompt": "What is Config.port after modifying through an instance variable?",
+    "options": [
+      { "id": "opt-1", "text": "8080", "misconception_id": "M7" },
+      { "id": "opt-2", "text": "9000", "misconception_id": null },
+      { "id": "opt-3", "text": "0", "misconception_id": null },
+      { "id": "opt-4", "text": "Compilation error", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-inh-1",
+    "concept_id": "inheritance",
+    "difficulty": 1,
+    "code": "class Animal {\n    void sound() { System.out.println(\"Animal\"); }\n}\nclass Cat extends Animal {\n    void sound() { System.out.println(\"Meow\"); }\n}\nAnimal pet = new Cat();\npet.sound();",
+    "prompt": "Which sound method executes?",
+    "options": [
+      { "id": "opt-1", "text": "Animal (declared type decides)", "misconception_id": "M8" },
+      { "id": "opt-2", "text": "Meow (runtime object decides)", "misconception_id": null },
+      { "id": "opt-3", "text": "Compilation error", "misconception_id": null },
+      { "id": "opt-4", "text": "ClassCastException", "misconception_id": null }
+    ],
+    "correct_option": "opt-2"
+  },
+  {
+    "id": "q-inh-2",
+    "concept_id": "inheritance",
+    "difficulty": 2,
+    "code": "class Parent {\n    int num = 10;\n}\nclass Child extends Parent {\n    int num = 20;\n}\nParent p = new Child();\nSystem.out.println(p.num);",
+    "prompt": "What does p.num print? (Note: fields in Java are not polymorphic like methods)",
+    "options": [
+      { "id": "opt-1", "text": "10", "misconception_id": null },
+      { "id": "opt-2", "text": "20", "misconception_id": null },
+      { "id": "opt-3", "text": "Compilation error", "misconception_id": null },
+      { "id": "opt-4", "text": "0", "misconception_id": null }
+    ],
+    "correct_option": "opt-1"
+  }
+]
