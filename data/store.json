@@ -1,0 +1,122 @@
+{
+  "students": {
+    "student-1": {
+      "id": "student-1",
+      "name": "Alex Johnson",
+      "mastery": {
+        "variables-types": 0.85,
+        "operators": 0.7,
+        "strings": 0.8,
+        "string-equality": 0.4,
+        "conditionals": 0.65,
+        "loops": 0.5,
+        "arrays": 0.35,
+        "methods": 0.5,
+        "classes-objects": 0.5,
+        "references": 0.5,
+        "static-instance": 0.5,
+        "inheritance": 0.5
+      },
+      "history": [
+        {
+          "question_id": "q-str-1",
+          "concept_id": "string-equality",
+          "option_id": "opt-2",
+          "reasoning": "I assumed == checks whether both strings have identical characters.",
+          "correct": false,
+          "misconception_id": "M1",
+          "timestamp": "2026-11-20T09:06:37.772Z"
+        },
+        {
+          "question_id": "q-op-1",
+          "concept_id": "operators",
+          "option_id": "opt-1",
+          "reasoning": "5 divided by 2 is 2.5 in math.",
+          "correct": false,
+          "misconception_id": "M2",
+          "timestamp": "2026-11-20T21:06:37.772Z"
+        }
+      ],
+      "sm2": {
+        "string-equality": {
+          "repetitions": 0,
+          "interval": 1,
+          "easeFactor": 2.3,
+          "nextReviewDate": "2026-11-22T09:06:37.772Z"
+        },
+        "operators": {
+          "repetitions": 1,
+          "interval": 2,
+          "easeFactor": 2.4,
+          "nextReviewDate": "2026-11-23T09:06:37.772Z"
+        },
+        "variables-types": {
+          "repetitions": 3,
+          "interval": 6,
+          "easeFactor": 2.6,
+          "nextReviewDate": "2026-11-26T09:06:37.772Z"
+        },
+        "arrays": {
+          "repetitions": 0,
+          "interval": 1,
+          "easeFactor": 2.5,
+          "nextReviewDate": "2026-11-22T09:06:37.772Z"
+        }
+      }
+    },
+    "student-2": {
+      "id": "student-2",
+      "name": "Beatriz Ramos",
+      "mastery": {
+        "variables-types": 0.95,
+        "operators": 0.9,
+        "strings": 0.85,
+        "string-equality": 0.8,
+        "conditionals": 0.85,
+        "loops": 0.75,
+        "arrays": 0.7,
+        "methods": 0.6,
+        "classes-objects": 0.5,
+        "references": 0.5,
+        "static-instance": 0.5,
+        "inheritance": 0.5
+      },
+      "history": [],
+      "sm2": {
+        "classes-objects": {
+          "repetitions": 2,
+          "interval": 4,
+          "easeFactor": 2.5,
+          "nextReviewDate": "2026-11-24T09:06:37.772Z"
+        }
+      }
+    },
+    "student-3": {
+      "id": "student-3",
+      "name": "Chen Wei",
+      "mastery": {
+        "variables-types": 0.6,
+        "operators": 0.45,
+        "strings": 0.5,
+        "string-equality": 0.3,
+        "conditionals": 0.5,
+        "loops": 0.5,
+        "arrays": 0.5,
+        "methods": 0.5,
+        "classes-objects": 0.5,
+        "references": 0.5,
+        "static-instance": 0.5,
+        "inheritance": 0.5
+      },
+      "history": [],
+      "sm2": {
+        "operators": {
+          "repetitions": 0,
+          "interval": 1,
+          "easeFactor": 2.2,
+          "nextReviewDate": "2026-11-22T09:06:37.772Z"
+        }
+      }
+    }
+  }
+}
